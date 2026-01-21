@@ -727,11 +727,29 @@ function pickFile(accept){
   });
 }
 
+
+// -------------------------
+// UI micro-interactions
+// -------------------------
+function updateFilterX(){
+  const has = $("tsFilter").value.trim().length > 0;
+  $("clearFilterBtn").style.visibility = has ? "visible" : "hidden";
+}
+
 // -------------------------
 // Status
 // -------------------------
 function setStatus(msg){
   $("status").textContent = msg;
+}
+
+
+function updateActiveColorUI(){
+  const c = $("colorSel").value;
+  const dot = $("activeColorDot");
+  if (dot) dot.style.background = c;
+  const sel = $("colorSel");
+  if (sel) sel.style.setProperty("--selColor", c);
 }
 
 // -------------------------
@@ -793,6 +811,8 @@ function bindUI(){
 
   $("addTsBtn").onclick = addTimestampAtCurrent;
 
+  $("colorSel").addEventListener("change", updateActiveColorUI);
+
   $("drawToggleBtn").onclick = () => {
     drawEnabled = !drawEnabled;
     $("drawToggleBtn").textContent = `Draw: ${drawEnabled ? "On" : "Off"}`;
@@ -817,8 +837,8 @@ function bindUI(){
   $("jumpTsBtn").onclick = jumpToSelected;
 
   // filters + athlete search
-  $("tsFilter").addEventListener("input", renderTimestampList);
-  $("clearFilterBtn").onclick = () => { $("tsFilter").value=""; renderTimestampList(); };
+  $("tsFilter").addEventListener("input", () => { renderTimestampList(); updateFilterX(); });
+$("clearFilterBtn").onclick = () => { $("tsFilter").value=""; renderTimestampList(); $("tsFilter").focus(); updateFilterX(); };
 
   $("athSearch").addEventListener("input", renderAthleteSearchResults);
 

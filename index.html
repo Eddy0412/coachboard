@@ -42,30 +42,33 @@
           <button class="btn btn--primary" id="addTsBtn">+ Timestamp @ Current</button>
         </div>
 
-        <div class="row wrap">
-          <button class="btn" id="drawToggleBtn">Draw: Off</button>
-          <select id="colorSel" class="select">
+        <div class="row wrap drawRow">
+  <button class="btn" id="drawToggleBtn">Draw: Off <span class="colorDot" id="activeColorDot" aria-hidden="true"></span></button>
+  <select id="colorSel" class="select colorSel">
             <option value="#00E5FF">Cyan</option>
             <option value="#FF4D4D">Red</option>
             <option value="#FFD166">Yellow</option>
             <option value="#A3FF12">Green</option>
             <option value="#FFFFFF">White</option>
           </select>
-          <select id="sizeSel" class="select">
+  <select id="sizeSel" class="select">
             <option value="2">2px</option>
             <option value="4" selected>4px</option>
             <option value="8">8px</option>
             <option value="12">12px</option>
           </select>
-          <button class="btn btn--danger" id="clearDrawBtn">Clear Drawings</button>
-        </div>
+  <div class="rowSpacer"></div>
+  <button class="btn btn--danger" id="clearDrawBtn" title="Clear drawings for selected timestamp">Clear drawings</button>
+</div>
 
         <div class="hr"></div>
 
         <div class="row wrap">
-          <input id="tsFilter" class="input" placeholder="Filter timestamps by title / notes / athlete..." />
-          <button class="btn" id="clearFilterBtn">Clear</button>
-        </div>
+  <div class="inputWrap" style="flex:1">
+    <input id="tsFilter" class="input input--withX" placeholder="Filter timestamps by title / notes / athlete..." />
+    <button class="inputX" id="clearFilterBtn" title="Clear filter" aria-label="Clear filter">×</button>
+  </div>
+</div>
 
         <div class="timestamps" id="tsList"></div>
       </aside>
