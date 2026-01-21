@@ -294,6 +294,8 @@ async function importRosterCSV(){
   renderTaggedAthletes();
   renderAthleteSearchResults();
   setStatus("Roster imported and UI refreshed.");
+  // If a timestamp is selected, re-select it to refresh tag panels immediately.
+  if (selectedTsId) selectTimestamp(selectedTsId);
 }
 
 function clearRoster(){
@@ -613,7 +615,7 @@ window.onYouTubeIframeAPIReady = () => {
     height: "100%",
     width: "100%",
     videoId: state.youtubeId || undefined,
-    playerVars: { playsinline: 1, rel: 0, modestbranding: 1, iv_load_policy: 3, origin: window.location.origin },
+    playerVars: { playsinline: 1, rel: 0, modestbranding: 1, iv_load_policy: 3, controls: 0, disablekb: 1, origin: window.location.origin },
     events: {
       onReady: () => {
         playerReady = true;
@@ -648,6 +650,29 @@ window.onYouTubeIframeAPIReady = () => {
     $("curTime").textContent = fmtTime(player.getCurrentTime());
   }, 250);
 };
+
+// -------------------------
+// New Project (keep roster, clear timestamps)
+// -------------------------
+function newProject(){
+  state.projectId = uidNumeric();
+  state.timestamps = [];
+  // keep roster and youtube fields
+  selectedTsId = null;
+  drawings = [];
+  activeStroke = null;
+  $("tsTitle").value = "";
+  $("tsDesc").value = "";
+  $("tsTimePill").textContent = "—";
+  $("tsFilter").value = "";
+  $("athSearch").value = "";
+  $("athleteTagList").innerHTML = "";
+  saveState();
+  renderTimestampList();
+  renderAthleteSearchResults();
+  redrawAll();
+  setStatus("New project started (timestamps cleared, roster kept). ");
+}
 
 // -------------------------
 // Project import/export
@@ -720,6 +745,8 @@ function bindUI(){
   $("goRosterBtn").onclick = () => setTab("roster");
 
   // project import/export
+  $("btn-new-project").onclick = newProject;
+
   $("btn-export-project").onclick = exportProject;
   $("btn-import-project").onclick = importProject;
 

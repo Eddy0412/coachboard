@@ -73,3 +73,13 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-appl
 .table{width:100%;border-collapse:collapse}
 .table th,.table td{padding:10px;border-bottom:1px solid var(--border);text-align:left;font-size:13px}
 .table th{position:sticky;top:0;background:var(--card);z-index:2}
+
+
+/* Icon buttons */
+.iconBtn{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;padding:0}
+.iconBtn svg{width:22px;height:22px;fill:currentColor}
+
+/* Film sidebar: keep controls fixed, scroll timestamps only */
+.filmSidebar{height:calc(100vh - 110px);display:flex;flex-direction:column}
+.filmSidebar .timestamps{flex:1;max-height:none;overflow:auto}
+@media (max-width: 1200px){.filmSidebar{height:auto}}

@@ -16,6 +16,7 @@
       <button class="tab is-active" id="tab-film" role="tab" aria-selected="true" aria-controls="panel-film">Film</button>
       <button class="tab" id="tab-roster" role="tab" aria-selected="false" aria-controls="panel-roster">Roster</button>
       <div class="tabs__spacer"></div>
+      <button class="btn btn--danger" id="btn-new-project" title="Clear timestamps and start fresh (keeps roster)">New Project</button>
       <button class="btn" id="btn-export-project">Export Project</button>
       <button class="btn" id="btn-import-project">Import Project</button>
     </nav>
@@ -24,7 +25,7 @@
   <main class="layout">
     <!-- FILM -->
     <section class="panel is-active" id="panel-film" role="tabpanel" aria-labelledby="tab-film">
-      <aside class="card stack">
+      <aside class="card stack filmSidebar">
         <div class="stack">
           <div class="row">
             <input id="ytUrl" class="input" placeholder="Paste YouTube URL (watch?v=... or youtu.be/...)" />
@@ -34,10 +35,10 @@
         </div>
 
         <div class="row wrap">
-          <button class="btn" id="playBtn">Play</button>
-          <button class="btn" id="pauseBtn">Pause</button>
-          <button class="btn" id="backBtn">Reverse (Step -5s)</button>
-          <button class="btn" id="fwdBtn">Forward (Step +5s)</button>
+          <button class="btn iconBtn" id="playBtn" title="Play" aria-label="Play"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></button>
+          <button class="btn iconBtn" id="pauseBtn" title="Pause" aria-label="Pause"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg></button>
+          <button class="btn iconBtn" id="backBtn" title="Reverse (Step -5s)" aria-label="Reverse step back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18V6l-8.5 6L11 18zm1-6l8.5 6V6L12 12z"/></svg></button>
+          <button class="btn iconBtn" id="fwdBtn" title="Forward (Step +5s)" aria-label="Forward step"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 6v12l8.5-6L13 6zM3 18l8.5-6L3 6v12z"/></svg></button>
           <button class="btn btn--primary" id="addTsBtn">+ Timestamp @ Current</button>
         </div>
 
