@@ -119,6 +119,7 @@ let state = {
 
 let player = null;
 let playerReady = false;
+let defaultMuted = true;
 let pendingVideoId = null;
 let selectedTsId = null;
 
@@ -126,10 +127,6 @@ let selectedTsId = null;
 let drawEnabled = false;
 let drawings = [];
 let activeStroke = null;
-let selectedColor = "#00E5FF";
-let selectedColorName = "Cyan";
-let defaultMuted = true;
-
 
 // -------------------------
 // Persistence
@@ -572,7 +569,7 @@ function pointerDown(e){
   activeStroke = {
     id: uidNumeric(),
     tool: "pen",
-    color: selectedColor,
+    color: $("colorSel").value,
     size: Number($("sizeSel").value),
     points: [relPoint(e.clientX, e.clientY)],
     createdAt: Date.now()
@@ -619,6 +616,8 @@ window.onYouTubeIframeAPIReady = () => {
       onReady: () => {
         playerReady = true;
         setStatus("Player ready.");
+        if (defaultMuted && player.mute) player.mute();
+        updateMuteUI();
         // If user clicked Load before the player finished initializing, honor it now.
         if (pendingVideoId) {
           player.cueVideoById(pendingVideoId);
@@ -626,9 +625,6 @@ window.onYouTubeIframeAPIReady = () => {
         } else if (state.youtubeId) {
           player.cueVideoById(state.youtubeId);
         }
-        if (defaultMuted && player.mute) player.mute();
-        updateMuteUI();
-        updateActiveColorUI();
         setTimeout(resizeCanvas, 60);
       },
       onError: (e) => {
@@ -738,6 +734,15 @@ function updateFilterX(){
   $("clearFilterBtn").style.visibility = has ? "visible" : "hidden";
 }
 
+
+function updateMuteUI(){
+  const btn = $("muteBtn");
+  if (!btn || !player) return;
+  const isMuted = player.isMuted?.() ?? true;
+  btn.title = isMuted ? "Unmute" : "Mute";
+  btn.setAttribute("aria-label", isMuted ? "Unmute" : "Mute");
+}
+
 // -------------------------
 // Status
 // -------------------------
@@ -754,6 +759,21 @@ function updateActiveColorUI(){
   if (sel) sel.style.setProperty("--selColor", c);
 }
 
+
+function syncColorUIFromSelect(){
+  const sel = $("colorSel");
+  if (!sel) return;
+  const opt = sel.options[sel.selectedIndex];
+  const color = sel.value;
+  const name = opt?.textContent?.trim() || "Color";
+  $("colorBtnLabel")?.replaceChildren(document.createTextNode(name));
+  const dot = $("colorDotLg");
+  if (dot) dot.style.background = color;
+  const pill = $("activeColorDot");
+  if (pill) pill.style.background = color;
+}
+function closeColorMenu(){ $("colorMenu")?.classList.remove("is-open"); }
+
 // -------------------------
 // Wire up UI
 // -------------------------
@@ -763,24 +783,6 @@ function bindUI(){
   $("tab-roster").onclick = () => setTab("roster");
 
   $("goRosterBtn").onclick = () => setTab("roster");
-
-  // Color picker
-  $("colorBtn").onclick = (e) => {
-    e.stopPropagation();
-    const m = $("colorMenu");
-    if (!m) return;
-    m.classList.toggle("is-open");
-  };
-  document.addEventListener("click", () => closeColorMenu());
-  $("colorMenu").addEventListener("click", (e) => {
-    const btn = e.target.closest(".colorItem");
-    if (!btn) return;
-    selectedColor = btn.getAttribute("data-color");
-    selectedColorName = btn.getAttribute("data-name");
-    updateActiveColorUI();
-    closeColorMenu();
-  });
-
 
   // project import/export
   $("btn-new-project").onclick = newProject;
@@ -841,7 +843,8 @@ function bindUI(){
 
   $("addTsBtn").onclick = addTimestampAtCurrent;
 
-  $("drawToggleBtn").onclick = () => {
+  $("colorSel").addEventListener("change", () => { syncColorUIFromSelect(); });
+$("drawToggleBtn").onclick = () => {
     drawEnabled = !drawEnabled;
     const dl = $("drawLabel");
     if (dl) dl.textContent = `Draw: ${drawEnabled ? "On" : "Off"}`;

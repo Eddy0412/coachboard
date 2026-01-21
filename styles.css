@@ -119,24 +119,26 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-appl
 /* Color select: show current color as a left dot (via --selColor) */
 .colorSel{padding-left:34px; background-image: radial-gradient(circle at 14px 50%, var(--selColor, #00E5FF) 0 6px, transparent 7px); background-repeat:no-repeat}
 
-/* v1.2.x patches */
+/* v1.2.2 patches */
 .rowSpacer{flex:1}
+.nativeHidden{position:absolute;opacity:0;pointer-events:none;width:0;height:0}
 
-/* Keep draw controls in one line on desktop; allow wrap on small screens */
+/* Keep draw controls on one row on desktop */
 .drawRow{align-items:center}
 @media (min-width: 900px){
   .drawRow{flex-wrap:nowrap}
+  .drawRow .btn{white-space:nowrap}
   .drawRow .select{min-width:72px}
 }
 
-/* Color picker menu (so swatches show inside dropdown) */
+/* Color picker dropdown */
 .colorPicker{position:relative;display:inline-flex}
-.colorBtn{display:inline-flex;align-items:center;gap:10px;min-width:140px;justify-content:flex-start}
+.colorBtn{display:inline-flex;align-items:center;gap:10px;min-width:150px;justify-content:flex-start}
 .colorBtn .chev{margin-left:auto;color:var(--muted);font-size:12px}
 .colorMenu{
   position:absolute; top:46px; left:0;
   background:var(--card); border:1px solid var(--border); border-radius:12px;
-  min-width:180px; padding:6px; z-index:60;
+  min-width:190px; padding:6px; z-index:60;
   box-shadow: 0 10px 30px rgba(0,0,0,.35);
   display:none;
 }
