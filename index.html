@@ -1,191 +1,74 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Coachboard v1 (Local)</title>
-  <link rel="stylesheet" href="./styles.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CoachBoard v1.3</title>
+  <link rel="stylesheet" href="styles.css"/>
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">
-      <div class="brand__title">Coachboard v1</div>
-      <div class="brand__pill">Local • YouTube • Timestamps • Telestration • Roster</div>
-    </div>
-    <nav class="tabs" role="tablist" aria-label="Coachboard tabs">
-      <button class="tab is-active" id="tab-film" role="tab" aria-selected="true" aria-controls="panel-film">Film</button>
-      <button class="tab" id="tab-roster" role="tab" aria-selected="false" aria-controls="panel-roster">Roster</button>
-      <div class="tabs__spacer"></div>
-      <button class="btn btn--danger" id="btn-new-project" title="Clear timestamps and start fresh (keeps roster)">New Project</button>
-      <button class="btn" id="btn-export-project">Export Project</button>
-      <button class="btn" id="btn-import-project">Import Project</button>
-    </nav>
+<div id="app">
+  <header class="topBar">
+    <h1>CoachBoard <span class="muted">v1.3</span></h1>
   </header>
 
   <main class="layout">
-    <!-- FILM -->
-    <section class="panel is-active" id="panel-film" role="tabpanel" aria-labelledby="tab-film">
-      <aside class="card stack filmSidebar">
-        <div class="stack">
-          <div class="row">
-            <input id="ytUrl" class="input" placeholder="Paste YouTube URL (watch?v=... or youtu.be/...)" />
-            <button class="btn btn--primary" id="loadBtn">Load</button>
-          </div>
-          <div class="muted" id="status">Idle.</div>
-        </div>
+    <section class="videoCol">
+      <div id="playerWrap">
+        <div id="player"></div>
+        <canvas id="drawCanvas"></canvas>
+      </div>
 
-        <div class="row wrap">
-          <button class="btn iconBtn" id="playBtn" title="Play" aria-label="Play"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></button>
-          <button class="btn iconBtn" id="pauseBtn" title="Pause" aria-label="Pause"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg></button>
-          <button class="btn iconBtn" id="backBtn" title="Reverse (Step -5s)" aria-label="Reverse step back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18V6l-8.5 6L11 18zm1-6l8.5 6V6L12 12z"/></svg></button>
-          <button class="btn iconBtn" id="fwdBtn" title="Forward (Step +5s)" aria-label="Forward step"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 6v12l8.5-6L13 6zM3 18l8.5-6L3 6v12z"/></svg></button>
-          <button class="btn btn--primary" id="addTsBtn">+ Timestamp @ Current</button>
-        </div>
+      <div class="controlsRow">
+        <button class="btn iconBtn" id="playBtn" title="Play">▶</button>
+        <button class="btn iconBtn" id="pauseBtn" title="Pause">⏸</button>
+        <button class="btn iconBtn" id="muteBtn" title="Unmute">🔇</button>
+        <button class="btn iconBtn" id="backBtn" title="Back 5s">⏪</button>
+        <button class="btn iconBtn" id="fwdBtn" title="Forward 5s">⏩</button>
+      </div>
 
-        <div class="row wrap drawRow">
-  <button class="btn" id="drawToggleBtn">Draw: Off <span class="colorDot" id="activeColorDot" aria-hidden="true"></span></button>
-  <select id="colorSel" class="select colorSel">
-            <option value="#00E5FF">Cyan</option>
-            <option value="#FF4D4D">Red</option>
-            <option value="#FFD166">Yellow</option>
-            <option value="#A3FF12">Green</option>
-            <option value="#FFFFFF">White</option>
-          </select>
-  <select id="sizeSel" class="select">
-            <option value="2">2px</option>
-            <option value="4" selected>4px</option>
-            <option value="8">8px</option>
-            <option value="12">12px</option>
-          </select>
-  <div class="rowSpacer"></div>
-  <button class="btn btn--danger" id="clearDrawBtn" title="Clear drawings for selected timestamp">Clear drawings</button>
-</div>
+      <div class="row wrap drawRow">
+        <button class="btn" id="drawToggleBtn">
+          <span id="drawLabel">Draw: Off</span>
+          <span class="colorDot" id="activeColorDot"></span>
+        </button>
 
-        <div class="hr"></div>
-
-        <div class="row wrap">
-  <div class="inputWrap" style="flex:1">
-    <input id="tsFilter" class="input input--withX" placeholder="Filter timestamps by title / notes / athlete..." />
-    <button class="inputX" id="clearFilterBtn" title="Clear filter" aria-label="Clear filter">×</button>
-  </div>
-</div>
-
-        <div class="timestamps" id="tsList"></div>
-      </aside>
-
-      <section class="card stack">
-        <div class="playerWrap" id="playerWrap">
-          <div id="player"></div>
-          <canvas id="overlay"></canvas>
-        </div>
-        <div class="row">
-          <div class="muted">Current time:</div>
-          <div id="curTime" class="pill">0:00</div>
-          <div class="muted">•</div>
-          <div class="muted">YouTube doesn’t support true reverse playback; reverse is step-back seek.</div>
-        </div>
-      </section>
-
-      <aside class="card stack">
-        <div class="row space-between">
-          <div>
-            <div class="title">Timestamp Editor</div>
-            <div class="muted">Select a timestamp to edit notes, tag athletes, and draw.</div>
-          </div>
-          <div class="pill" id="tsTimePill">—</div>
-        </div>
-
-        <div class="stack">
-          <input id="tsTitle" class="input" placeholder="Title" />
-          <textarea id="tsDesc" class="textarea" rows="7" placeholder="Notes / coaching points"></textarea>
-
-          <div class="hr"></div>
-
-          <div class="row space-between">
-            <div class="subhead">Tag athletes</div>
-            <button class="btn" id="goRosterBtn" title="Go to roster">Manage roster</button>
-          </div>
-
-          <div class="row">
-            <input id="athSearch" class="input" placeholder="Search athlete (name / jersey / position / team)" />
-          </div>
-          <div class="athResults" id="athResults"></div>
-          <div class="row wrap" id="athleteTagList"></div>
-
-          <div class="hr"></div>
-
-          <div class="row wrap">
-            <button class="btn btn--primary" id="saveTsBtn">Save</button>
-            <button class="btn btn--danger" id="deleteTsBtn">Delete</button>
-            <button class="btn" id="jumpTsBtn">Jump</button>
+        <div class="colorPicker">
+          <button class="btn colorBtn" id="colorBtn">
+            <span class="colorDotLg" id="colorDotLg"></span>
+            <span id="colorBtnLabel">Cyan</span>
+            <span class="chev">▾</span>
+          </button>
+          <div class="colorMenu" id="colorMenu">
+            <button class="colorItem" data-color="#00E5FF" data-name="Cyan"><span class="colorSwatch" style="background:#00E5FF"></span>Cyan</button>
+            <button class="colorItem" data-color="#FF4D4D" data-name="Red"><span class="colorSwatch" style="background:#FF4D4D"></span>Red</button>
+            <button class="colorItem" data-color="#FFD166" data-name="Yellow"><span class="colorSwatch" style="background:#FFD166"></span>Yellow</button>
+            <button class="colorItem" data-color="#A3FF12" data-name="Green"><span class="colorSwatch" style="background:#A3FF12"></span>Green</button>
+            <button class="colorItem" data-color="#FFFFFF" data-name="White"><span class="colorSwatch" style="background:#FFFFFF"></span>White</button>
           </div>
         </div>
-      </aside>
+
+        <select id="sizeSel" class="select">
+          <option value="2">2px</option>
+          <option value="4" selected>4px</option>
+          <option value="8">8px</option>
+          <option value="12">12px</option>
+        </select>
+
+        <div class="rowSpacer"></div>
+        <button class="btn btn--danger" id="clearDrawBtn">Clear drawings</button>
+      </div>
     </section>
 
-    <!-- ROSTER -->
-    <section class="panel" id="panel-roster" role="tabpanel" aria-labelledby="tab-roster">
-      <section class="card stack rosterGrid">
-        <div class="row space-between">
-          <div>
-            <div class="title">Roster</div>
-            <div class="muted">Create roster entries here. IDs are generated by the system.</div>
-          </div>
-          <div class="row wrap">
-            <button class="btn" id="btn-export-roster">Export Roster CSV</button>
-            <button class="btn" id="btn-import-roster">Import Roster CSV</button>
-            <button class="btn btn--danger" id="btn-clear-roster" title="Deletes roster only">Clear roster</button>
-          </div>
-        </div>
-
-        <div class="grid2">
-          <div class="stack">
-            <div class="subhead">Add athlete</div>
-            <div class="row">
-              <input id="r-first" class="input" placeholder="First name" />
-              <input id="r-last" class="input" placeholder="Last name" />
-            </div>
-            <div class="row">
-              <input id="r-pos" class="input" placeholder="Position (QB, WR...)" />
-              <input id="r-jersey" class="input" placeholder="Jersey # (12)" />
-            </div>
-            <div class="row">
-              <input id="r-team" class="input" placeholder="Team" />
-              <button class="btn btn--primary" id="btn-add-athlete">Add</button>
-            </div>
-            <div class="muted" id="rosterStatus">—</div>
-          </div>
-
-          <div class="stack">
-            <div class="subhead">Search</div>
-            <input id="rosterSearch" class="input" placeholder="Search roster..." />
-            <div class="muted">Tip: use jersey number, position, team, or name.</div>
-          </div>
-        </div>
-
-        <div class="hr"></div>
-
-        <div class="tableWrap">
-          <table class="table" id="rosterTable">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>First</th>
-                <th>Last</th>
-                <th>Pos</th>
-                <th>Jersey</th>
-                <th>Team</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody id="rosterTbody"></tbody>
-          </table>
-        </div>
-      </section>
+    <section class="sideCol">
+      <h3>Athletes</h3>
+      <input id="athSearch" class="input" placeholder="Search athlete"/>
+      <div id="athResults" class="list"></div>
     </section>
   </main>
+</div>
 
-  <input type="file" id="fileInput" style="display:none" />
-  <script src="./app.js"></script>
+<script src="https://www.youtube.com/iframe_api"></script>
+<script src="app.js"></script>
 </body>
 </html>
