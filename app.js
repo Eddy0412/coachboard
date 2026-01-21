@@ -118,6 +118,8 @@ let state = {
 };
 
 let player = null;
+let playerReady = false;
+let pendingVideoId = null;
 let selectedTsId = null;
 
 // telestration state
@@ -286,7 +288,12 @@ async function importRosterCSV(){
   state.roster = Array.from(byId.values());
   saveState();
   $("rosterStatus").textContent = `Imported ${mapped.length} rows (merged by ID).`;
+  // Force a full UI re-sync so tags/search reflect imported roster immediately.
   renderRosterTable();
+  renderTimestampList();
+  renderTaggedAthletes();
+  renderAthleteSearchResults();
+  setStatus("Roster imported and UI refreshed.");
 }
 
 function clearRoster(){
@@ -606,14 +613,32 @@ window.onYouTubeIframeAPIReady = () => {
     height: "100%",
     width: "100%",
     videoId: state.youtubeId || undefined,
-    playerVars: { playsinline: 1 },
+    playerVars: { playsinline: 1, rel: 0, modestbranding: 1, iv_load_policy: 3, origin: window.location.origin },
     events: {
       onReady: () => {
+        playerReady = true;
         setStatus("Player ready.");
-        if (state.youtubeId) player.cueVideoById(state.youtubeId);
+        // If user clicked Load before the player finished initializing, honor it now.
+        if (pendingVideoId) {
+          player.cueVideoById(pendingVideoId);
+          pendingVideoId = null;
+        } else if (state.youtubeId) {
+          player.cueVideoById(state.youtubeId);
+        }
         setTimeout(resizeCanvas, 60);
       },
-      onError: () => setStatus("Player error. Video may block embedding.")
+      onError: (e) => {
+        const code = e?.data;
+        const map = {
+          2: "Invalid video ID or parameter.",
+          5: "HTML5 player error.",
+          100: "Video not found (removed/private).",
+          101: "Embed not allowed OR origin/restriction issue.",
+          150: "Embed not allowed OR origin/restriction issue."
+        };
+        setStatus(`Player error (${code}). ${map[code] || "Unknown error."}`);
+        console.warn("YT error:", e);
+      }
     }
   });
 
@@ -654,7 +679,10 @@ async function importProject(){
     selectedTsId = null;
     drawings = [];
     redrawAll();
-    if (player?.cueVideoById && state.youtubeId) player.cueVideoById(state.youtubeId);
+    if (state.youtubeId) {
+      if (playerReady && player?.cueVideoById) player.cueVideoById(state.youtubeId);
+      else pendingVideoId = state.youtubeId;
+    }
     setStatus("Imported project JSON.");
   } catch {
     setStatus("Import failed: invalid project JSON.");
@@ -707,15 +735,20 @@ function bindUI(){
     const url = $("ytUrl").value.trim();
     const id = parseYouTubeId(url);
     if (!id){ setStatus("Could not parse YouTube ID. Paste a normal YouTube URL."); return; }
+
     state.youtubeUrl = url;
     state.youtubeId = id;
     saveState();
-    if (player?.cueVideoById){
-      player.cueVideoById(id);
-      setStatus(`Loaded videoId: ${id}`);
-    } else {
-      setStatus("Player not ready yet.");
+
+    // If the user loads a video before the YouTube player is ready, queue it.
+    if (!playerReady || !player?.cueVideoById){
+      pendingVideoId = id;
+      setStatus("Loading queued — player is still initializing...");
+      return;
     }
+
+    player.cueVideoById(id);
+    setStatus(`Loaded videoId: ${id}`);
     setTimeout(resizeCanvas, 60);
   };
 
