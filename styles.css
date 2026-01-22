@@ -119,6 +119,24 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-appl
 /* Color select: show current color as a left dot (via --selColor) */
 .colorSel{padding-left:34px; background-image: radial-gradient(circle at 14px 50%, var(--selColor, #00E5FF) 0 6px, transparent 7px); background-repeat:no-repeat}
 
-/* v1.2.9 */
-.btn .ic{width:18px;height:18px;fill:currentColor;vertical-align:middle;margin-right:8px}
-.btn .btnText{vertical-align:middle}
+
+/* v1.2.8 fixes */
+#player iframe{pointer-events:none}
+
+.swatchRow{display:flex;gap:10px;align-items:center}
+.swatch{width:18px;height:18px;border-radius:999px;border:1px solid rgba(255,255,255,0.22);background:#00E5FF;cursor:pointer;padding:0}
+.swatch[data-color="#FF4D4D"]{background:#FF4D4D}
+.swatch[data-color="#FFD166"]{background:#FFD166}
+.swatch[data-color="#A3FF12"]{background:#A3FF12}
+.swatch[data-color="#FFFFFF"]{background:#FFFFFF}
+.swatch.is-active{outline:2px solid rgba(255,255,255,0.75);outline-offset:2px}
+
+.iconBtn .ic{width:22px;height:22px;fill:currentColor}
+#muteBtn .ic-vol{display:none}
+#muteBtn.is-unmuted .ic-vol{display:inline}
+#muteBtn.is-unmuted .ic-mute{display:none}
+
+@media (min-width: 900px){
+  .drawRow{flex-wrap:nowrap;align-items:center}
+  .drawRow .btn,.drawRow .select{white-space:nowrap}
+}

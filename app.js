@@ -126,7 +126,6 @@ let selectedTsId = null;
 let drawEnabled = false;
 let selectedColor = '#00E5FF';
 let drawings = [];
-let drawingsVisible = true;
 let activeStroke = null;
 
 // -------------------------
@@ -389,9 +388,7 @@ function addTimestampAtCurrent(){
 
 function selectTimestamp(id){
   selectedTsId = id;
-  
-  drawingsVisible = true;
-const ts = state.timestamps.find(t => t.id === id);
+  const ts = state.timestamps.find(t => t.id === id);
   if (!ts) return;
 
   $("tsTitle").value = ts.title || "";
@@ -566,9 +563,7 @@ function drawStroke(stroke){
 
 function redrawAll(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
-  
-  if (!drawingsVisible) { return; }
-for (const d of drawings) drawStroke(d);
+  for (const d of drawings) drawStroke(d);
   if (activeStroke) drawStroke(activeStroke);
 }
 
