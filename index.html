@@ -44,15 +44,17 @@
         </div>
 
         <div class="row wrap drawRow">
-  <button class="btn" id="drawToggleBtn">Draw: Off <span class="colorDot" id="activeColorDot" aria-hidden="true"></span></button>
-  <select id="colorSel" class="select colorSel">
-            <option value="#00E5FF">Cyan</option>
-            <option value="#FF4D4D">Red</option>
-            <option value="#FFD166">Yellow</option>
-            <option value="#A3FF12">Green</option>
-            <option value="#FFFFFF">White</option>
-          </select>
+  <button class="btn" id="drawToggleBtn" title="Toggle drawing" aria-label="Toggle drawing"><span id="drawLabel">Draw: Off</span> <span class="colorDot" id="activeColorDot" aria-hidden="true"></span></button>
+
+  <div class="swatchRow" id="swatchRow" aria-label="Draw color">
+    <button class="swatch is-active" data-color="#00E5FF" title="Cyan" aria-label="Cyan"></button>
+    <button class="swatch" data-color="#FF4D4D" title="Red" aria-label="Red"></button>
+    <button class="swatch" data-color="#FFD166" title="Yellow" aria-label="Yellow"></button>
+    <button class="swatch" data-color="#A3FF12" title="Green" aria-label="Green"></button>
+    <button class="swatch" data-color="#FFFFFF" title="White" aria-label="White"></button>
+  </div>
   <button class="btn btn--danger" id="clearDrawBtn" title="Clear drawings for selected timestamp">Clear</button>
+
   <select id="sizeSel" class="select">
             <option value="2">2px</option>
             <option value="4" selected>4px</option>

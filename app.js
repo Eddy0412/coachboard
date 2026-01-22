@@ -126,6 +126,8 @@ let selectedTsId = null;
 let drawEnabled = false;
 let drawings = [];
 let activeStroke = null;
+let selectedColor = "#00E5FF";
+
 
 // -------------------------
 // Persistence
@@ -568,7 +570,7 @@ function pointerDown(e){
   activeStroke = {
     id: uidNumeric(),
     tool: "pen",
-    color: $("colorSel").value,
+    color: selectedColor,
     size: Number($("sizeSel").value),
     points: [relPoint(e.clientX, e.clientY)],
     createdAt: Date.now()
@@ -599,94 +601,20 @@ canvas.addEventListener("pointercancel", pointerUp);
 // -------------------------
 // YouTube IFrame API
 // -------------------------
+function injectYouTubeApi(){ /* handled by loadYouTubeApiOnce */ }
 
-let ytApiPromise = null;
-
-function loadYouTubeApiOnce(){
-  if (window.YT && window.YT.Player) return Promise.resolve();
-  if (ytApiPromise) return ytApiPromise;
-
-  ytApiPromise = new Promise((resolve, reject) => {
-    // Define callback BEFORE loading script (race fix)
-    window.onYouTubeIframeAPIReady = () => resolve();
-
-    // Avoid double-injecting script
-    if (!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')) {
-      const tag = document.createElement("script");
-      tag.src = "https://www.youtube.com/iframe_api";
-      tag.async = true;
-      tag.onerror = () => reject(new Error("Failed to load YouTube iframe_api"));
-      document.head.appendChild(tag);
+        setStatus(`Player error (${code}). ${map[code] || "Unknown error."}`);
+        console.warn("YT error:", e);
+      }
     }
-
-    // Fallback: if callback gets missed, poll for YT.Player
-    const started = Date.now();
-    const t = setInterval(() => {
-      if (window.YT && window.YT.Player) {
-        clearInterval(t);
-        resolve();
-      } else if (Date.now() - started > 12000) {
-        clearInterval(t);
-        reject(new Error("YouTube API timeout"));
-      }
-    }, 100);
   });
 
-  return ytApiPromise;
-}
-
-async function initPlayer(){
-  if (player) return player;
-  await loadYouTubeApiOnce();
-
-  return new Promise((resolve) => {
-    player = new YT.Player("player", {
-      height: "100%",
-      width: "100%",
-      videoId: state.youtubeId || undefined,
-      playerVars: { playsinline: 1, rel: 0, modestbranding: 1, iv_load_policy: 3, controls: 0, disablekb: 1, origin: window.location.origin },
-      events: {
-        onReady: () => {
-          playerReady = true;
-          setStatus("Player ready.");
-
-          // Honor any queued load
-          if (pendingVideoId) {
-            player.cueVideoById(pendingVideoId);
-            pendingVideoId = null;
-          } else if (state.youtubeId) {
-            player.cueVideoById(state.youtubeId);
-          }
-
-          if (defaultMuted && player.mute) player.mute();
-          updateMuteUI();
-          setTimeout(resizeCanvas, 60);
-          resolve(player);
-        },
-        onError: (e) => {
-          const code = e?.data;
-          const map = {
-            2: "Invalid video ID or parameter.",
-            5: "HTML5 player error.",
-            100: "Video not found or private.",
-            101: "Embedding blocked by owner.",
-            150: "Embedding blocked by owner."
-          };
-          setStatus(`Player error (${code}). ${map[code] || "Unknown error."}`);
-          console.warn("YT error:", e);
-          resolve(player);
-        }
-      }
-    });
-
-    // time pill
-    setInterval(() => {
-      if (!player || typeof player.getCurrentTime !== "function") return;
-      $("curTime").textContent = fmtTime(player.getCurrentTime());
-    }, 250);
-  });
-}
-
+  // time pill
+  setInterval(() => {
+    if (!player || typeof player.getCurrentTime !== "function") return;
+    $("curTime").textContent = fmtTime(player.getCurrentTime());
+  }, 250);
+};
 
 // -------------------------
 // New Project (keep roster, clear timestamps)
@@ -774,7 +702,39 @@ function updateFilterX(){
 }
 
 
+// -------------------------
+// YouTube API (deterministic loader - fixes GitHub Pages race)
+let ytApiPromise = null;
 let defaultMuted = true;
+
+function loadYouTubeApiOnce(){
+  if (ytApiPromise) return ytApiPromise;
+  ytApiPromise = new Promise((resolve, reject) => {
+    if (window.YT && window.YT.Player) return resolve();
+
+    window.onYouTubeIframeAPIReady = () => resolve();
+
+    if (!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')){
+      const tag = document.createElement("script");
+      tag.src = "https://www.youtube.com/iframe_api";
+      tag.async = true;
+      tag.onerror = () => reject(new Error("Failed to load YouTube iframe_api"));
+      document.head.appendChild(tag);
+    }
+
+    const start = Date.now();
+    const t = setInterval(() => {
+      if (window.YT && window.YT.Player){
+        clearInterval(t);
+        resolve();
+      } else if (Date.now() - start > 12000){
+        clearInterval(t);
+        reject(new Error("YouTube API timeout"));
+      }
+    }, 100);
+  });
+  return ytApiPromise;
+}
 
 function updateMuteUI(){
   const btn = $("muteBtn");
@@ -783,6 +743,48 @@ function updateMuteUI(){
   btn.classList.toggle("is-unmuted", !muted);
   btn.title = muted ? "Muted" : "Unmuted";
   btn.setAttribute("aria-label", muted ? "Muted" : "Unmuted");
+}
+
+async function initPlayerIfNeeded(){
+  if (player) return player;
+  await loadYouTubeApiOnce();
+  return new Promise((resolve) => {
+    player = new YT.Player("player", {
+      height: "100%",
+      width: "100%",
+      videoId: state.youtubeId || undefined,
+      playerVars: {
+        playsinline: 1,
+        rel: 0,
+        modestbranding: 1,
+        iv_load_policy: 3,
+        controls: 0,
+        disablekb: 1,
+        origin: window.location.origin,
+      },
+      events: {
+        onReady: () => {
+          playerReady = true;
+          setStatus("Player ready.");
+          if (defaultMuted && player.mute) player.mute();
+          updateMuteUI();
+          if (pendingVideoId){
+            player.cueVideoById(pendingVideoId);
+            pendingVideoId = null;
+          } else if (state.youtubeId){
+            player.cueVideoById(state.youtubeId);
+          }
+          setTimeout(resizeCanvas, 60);
+          resolve(player);
+        },
+        onError: (e) => {
+          const code = e?.data;
+          setStatus(`Player error (${code}). Video may block embedding.`);
+          resolve(player);
+        }
+      }
+    });
+  });
 }
 
 // -------------------------
@@ -805,15 +807,20 @@ function updateActiveColorUI(){
 // Wire up UI
 // -------------------------
 function bindUI(){
-  // dedupe clearDrawBtn (older patches may have added duplicates in HTML)
-  const clears = document.querySelectorAll('#clearDrawBtn');
-  clears.forEach((b,i)=>{ if(i>0) b.remove(); });
-
   // tabs
   $("tab-film").onclick = () => setTab("film");
   $("tab-roster").onclick = () => setTab("roster");
 
   $("goRosterBtn").onclick = () => setTab("roster");
+
+  // Swatch color picker
+  document.querySelectorAll(".swatch").forEach((b) => {
+    b.addEventListener("click", () => {
+      selectedColor = b.getAttribute("data-color");
+      updateActiveColorUI();
+    });
+  });
+  updateActiveColorUI();
 
   // project import/export
   $("btn-new-project").onclick = newProject;
@@ -829,7 +836,7 @@ function bindUI(){
   $("btn-clear-roster").onclick = clearRoster;
 
   // film controls
-  $("loadBtn").onclick = async () => {
+  $("loadBtn").onclick = () => {
     const url = $("ytUrl").value.trim();
     const id = parseYouTubeId(url);
     if (!id){ setStatus("Could not parse YouTube ID. Paste a normal YouTube URL."); return; }
@@ -838,18 +845,14 @@ function bindUI(){
     state.youtubeId = id;
     saveState();
 
-    // If player isn't ready yet, initialize then load.
+    // If the user loads a video before the YouTube player is ready, queue it.
     if (!playerReady || !player?.cueVideoById){
       pendingVideoId = id;
-      setStatus("Initializing player…");
-      await initPlayer();
-      // initPlayer will cue pendingVideoId automatically
+      setStatus("Loading queued — player is still initializing...");
       return;
     }
 
     player.cueVideoById(id);
-    if (defaultMuted && player.mute) player.mute();
-    updateMuteUI();
     setStatus(`Loaded videoId: ${id}`);
     setTimeout(resizeCanvas, 60);
   };
@@ -857,14 +860,12 @@ function bindUI(){
   $("playBtn").onclick = () => player?.playVideo?.();
   $("pauseBtn").onclick = () => player?.pauseVideo?.();
 
-  $("muteBtn").onclick = async () => {
-    if (!player) await initPlayer();
-    if (!player) return;
-    const muted = player.isMuted?.() ?? true;
-    if (muted) player.unMute?.(); else player.mute?.();
-    defaultMuted = player.isMuted?.() ?? defaultMuted;
+  $("muteBtn")?.addEventListener("click", async () => {
+    await initPlayerIfNeeded();
+    const muted = player?.isMuted?.() ?? true;
+    if (muted) player?.unMute?.(); else player?.mute?.();
     updateMuteUI();
-  };
+  });
 
   $("fwdBtn").onclick = () => {
     if (!player) return;
@@ -877,8 +878,7 @@ function bindUI(){
 
   $("addTsBtn").onclick = addTimestampAtCurrent;
 
-  $("colorSel").addEventListener("change", updateActiveColorUI);
-
+  
   $("drawToggleBtn").onclick = () => {
     drawEnabled = !drawEnabled;
     const dl = $("drawLabel");
@@ -937,8 +937,8 @@ function init(){
   renderTimestampList();
   renderAthleteSearchResults();
 
-  // Initialize YouTube player deterministically (no refresh race)
-  initPlayer().catch((e)=>{ console.warn(e); setStatus('YouTube init failed.'); });
+  injectYouTubeApi();
+  initPlayerIfNeeded();
   setTimeout(resizeCanvas, 60);
 
   canvas.style.pointerEvents = "none";
