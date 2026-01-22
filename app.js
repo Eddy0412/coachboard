@@ -943,6 +943,7 @@ function init(){
   $("ytUrl").value = state.youtubeUrl || "";
 
   bindUI();
+  rebindCriticalControls();
   renderRosterTable();
   renderTimestampList();
   renderAthleteSearchResults();
@@ -954,4 +955,44 @@ function init(){
   canvas.style.pointerEvents = "none";
 }
 
-init();
+
+// -------------------------
+// Safe boot (GitHub Pages)
+// -------------------------
+document.addEventListener("DOMContentLoaded", () => {
+  init();
+});
+
+function rebindCriticalControls(){
+  const safe = async (fn) => async (...args) => {
+    try { return await fn(...args); }
+    catch(e){ console.error(e); setStatus("Control error"); }
+  };
+
+  if ($("playBtn")) $("playBtn").onclick = safe(async () => {
+    await initPlayerIfNeeded();
+    player?.playVideo?.();
+  });
+
+  if ($("pauseBtn")) $("pauseBtn").onclick = safe(async () => {
+    await initPlayerIfNeeded();
+    player?.pauseVideo?.();
+  });
+
+  if ($("fwdBtn")) $("fwdBtn").onclick = safe(async () => {
+    await initPlayerIfNeeded();
+    player?.seekTo?.(Math.min(player.getDuration(), player.getCurrentTime() + 5), true);
+  });
+
+  if ($("backBtn")) $("backBtn").onclick = safe(async () => {
+    await initPlayerIfNeeded();
+    player?.seekTo?.(Math.max(0, player.getCurrentTime() - 5), true);
+  });
+
+  if ($("muteBtn")) $("muteBtn").onclick = safe(async () => {
+    await initPlayerIfNeeded();
+    const muted = player.isMuted?.();
+    muted ? player.unMute() : player.mute();
+    updateMuteUI();
+  });
+}
