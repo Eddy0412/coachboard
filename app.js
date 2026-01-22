@@ -126,7 +126,7 @@ let selectedTsId = null;
 let drawEnabled = false;
 let drawings = [];
 let activeStroke = null;
-let selectedColor = "#00E5FF";
+let selectedColor = '#00E5FF';
 
 
 // -------------------------
@@ -475,13 +475,18 @@ function renderAthleteSearchResults(){
   const box = $("athResults");
   box.innerHTML = "";
 
+  if (!selectedTsId){
+    box.innerHTML = `<div class="athRow"><div class="athLabel"><div class="athMain">Select a timestamp</div><div class="athSub">Tag athletes per timestamp</div></div></div>`;
+    return;
+  }
+
   if (!state.roster.length){
     box.innerHTML = `<div class="athRow"><div class="athLabel"><div class="athMain">Roster is empty</div><div class="athSub">Go to Roster tab and add athletes first.</div></div></div>`;
     return;
   }
 
-  const ts = selectedTsId ? state.timestamps.find(t => t.id === selectedTsId) : null;
-  const tagged = new Set(((ts?.taggedAthleteIds)||[]).map(Number));
+  const ts = state.timestamps.find(t => t.id === selectedTsId);
+  const tagged = new Set((ts.taggedAthleteIds||[]).map(Number));
 
   const rows = state.roster
     .slice()
@@ -498,7 +503,7 @@ function renderAthleteSearchResults(){
         <div class="athMain">${escapeHtml(rosterLabel(a))}</div>
         <div class="athSub">ID ${a.id}</div>
       </div>
-      <button class="btn ${isTagged ? "" : "btn--primary"}" data-id="${a.id}">${ts ? (isTagged ? "Tagged" : "Tag") : "Select timestamp"}</button>
+      <button class="btn ${isTagged ? "" : "btn--primary"}" data-id="${a.id}">${isTagged ? "Tagged" : "Tag"}</button>
     `;
     row.querySelector("button").onclick = () => {
       if (!ts.taggedAthleteIds) ts.taggedAthleteIds = [];
@@ -601,8 +606,50 @@ canvas.addEventListener("pointercancel", pointerUp);
 // -------------------------
 // YouTube IFrame API
 // -------------------------
-function injectYouTubeApi(){ /* handled by loadYouTubeApiOnce */ }
+function injectYouTubeApi(){
+  // Avoid double-inject on GitHub Pages / caching
+  if (!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')){
+    const tag = document.createElement("script");
+    tag.src = "https://www.youtube.com/iframe_api";
+    tag.async = true;
+    document.head.appendChild(tag);
+  }
+  // If API already present (script cached), trigger ready on next tick.
+  if (window.YT && window.YT.Player && typeof window.onYouTubeIframeAPIReady === "function"){
+    setTimeout(() => window.onYouTubeIframeAPIReady(), 0);
+  }
+}
+}
 
+window.onYouTubeIframeAPIReady = () => {
+  player = new YT.Player("player", {
+    height: "100%",
+    width: "100%",
+    videoId: state.youtubeId || undefined,
+    playerVars: { playsinline: 1, rel: 0, modestbranding: 1, iv_load_policy: 3, controls: 0, disablekb: 1, origin: window.location.origin },
+    events: {
+      onReady: () => {
+        playerReady = true;
+        setStatus("Player ready.");
+        try{ player.mute?.(); $("muteBtn")?.classList.remove("is-unmuted"); }catch(e){}
+        // If user clicked Load before the player finished initializing, honor it now.
+        if (pendingVideoId) {
+          player.cueVideoById(pendingVideoId);
+          pendingVideoId = null;
+        } else if (state.youtubeId) {
+          player.cueVideoById(state.youtubeId);
+        }
+        setTimeout(resizeCanvas, 60);
+      },
+      onError: (e) => {
+        const code = e?.data;
+        const map = {
+          2: "Invalid video ID or parameter.",
+          5: "HTML5 player error.",
+          100: "Video not found (removed/private).",
+          101: "Embed not allowed OR origin/restriction issue.",
+          150: "Embed not allowed OR origin/restriction issue."
+        };
         setStatus(`Player error (${code}). ${map[code] || "Unknown error."}`);
         console.warn("YT error:", e);
       }
@@ -701,92 +748,6 @@ function updateFilterX(){
   $("clearFilterBtn").style.visibility = has ? "visible" : "hidden";
 }
 
-
-// -------------------------
-// YouTube API (deterministic loader - fixes GitHub Pages race)
-let ytApiPromise = null;
-let defaultMuted = true;
-
-function loadYouTubeApiOnce(){
-  if (ytApiPromise) return ytApiPromise;
-  ytApiPromise = new Promise((resolve, reject) => {
-    if (window.YT && window.YT.Player) return resolve();
-
-    window.onYouTubeIframeAPIReady = () => resolve();
-
-    if (!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')){
-      const tag = document.createElement("script");
-      tag.src = "https://www.youtube.com/iframe_api";
-      tag.async = true;
-      tag.onerror = () => reject(new Error("Failed to load YouTube iframe_api"));
-      document.head.appendChild(tag);
-    }
-
-    const start = Date.now();
-    const t = setInterval(() => {
-      if (window.YT && window.YT.Player){
-        clearInterval(t);
-        resolve();
-      } else if (Date.now() - start > 12000){
-        clearInterval(t);
-        reject(new Error("YouTube API timeout"));
-      }
-    }, 100);
-  });
-  return ytApiPromise;
-}
-
-function updateMuteUI(){
-  const btn = $("muteBtn");
-  if (!btn || !player) return;
-  const muted = player.isMuted?.() ?? true;
-  btn.classList.toggle("is-unmuted", !muted);
-  btn.title = muted ? "Muted" : "Unmuted";
-  btn.setAttribute("aria-label", muted ? "Muted" : "Unmuted");
-}
-
-async function initPlayerIfNeeded(){
-  if (player) return player;
-  await loadYouTubeApiOnce();
-  return new Promise((resolve) => {
-    player = new YT.Player("player", {
-      height: "100%",
-      width: "100%",
-      videoId: state.youtubeId || undefined,
-      playerVars: {
-        playsinline: 1,
-        rel: 0,
-        modestbranding: 1,
-        iv_load_policy: 3,
-        controls: 0,
-        disablekb: 1,
-        origin: window.location.origin,
-      },
-      events: {
-        onReady: () => {
-          playerReady = true;
-          setStatus("Player ready.");
-          if (defaultMuted && player.mute) player.mute();
-          updateMuteUI();
-          if (pendingVideoId){
-            player.cueVideoById(pendingVideoId);
-            pendingVideoId = null;
-          } else if (state.youtubeId){
-            player.cueVideoById(state.youtubeId);
-          }
-          setTimeout(resizeCanvas, 60);
-          resolve(player);
-        },
-        onError: (e) => {
-          const code = e?.data;
-          setStatus(`Player error (${code}). Video may block embedding.`);
-          resolve(player);
-        }
-      }
-    });
-  });
-}
-
 // -------------------------
 // Status
 // -------------------------
@@ -813,7 +774,7 @@ function bindUI(){
 
   $("goRosterBtn").onclick = () => setTab("roster");
 
-  // Swatch color picker
+  // Swatch picker
   document.querySelectorAll(".swatch").forEach((b) => {
     b.addEventListener("click", () => {
       selectedColor = b.getAttribute("data-color");
@@ -821,6 +782,20 @@ function bindUI(){
     });
   });
   updateActiveColorUI();
+
+  // Mute toggle (button reflects state)
+  $("muteBtn")?.addEventListener("click", () => {
+    if (!player) return;
+    const muted = player.isMuted?.() ?? true;
+    if (muted) {
+      player.unMute?.();
+      $("muteBtn").classList.add("is-unmuted");
+    } else {
+      player.mute?.();
+      $("muteBtn").classList.remove("is-unmuted");
+    }
+  });
+
 
   // project import/export
   $("btn-new-project").onclick = newProject;
@@ -836,7 +811,7 @@ function bindUI(){
   $("btn-clear-roster").onclick = clearRoster;
 
   // film controls
-  $("loadBtn").onclick = async () => {
+  $("loadBtn").onclick = () => {
     const url = $("ytUrl").value.trim();
     const id = parseYouTubeId(url);
     if (!id){ setStatus("Could not parse YouTube ID. Paste a normal YouTube URL."); return; }
@@ -845,50 +820,34 @@ function bindUI(){
     state.youtubeId = id;
     saveState();
 
-    pendingVideoId = id;
-    setStatus("Initializing player…");
-
-    try{
-      await initPlayerIfNeeded();
-      if (!playerReady || !player?.cueVideoById){
-        setStatus("Player still initializing… try again in a moment.");
-        return;
-      }
-      player.cueVideoById(id);
-      if (defaultMuted && player.mute) player.mute();
-      updateMuteUI();
-      pendingVideoId = null;
-      setStatus(`Loaded videoId: ${id}`);
-      setTimeout(resizeCanvas, 60);
-    }catch(err){
-      setStatus(`YouTube init failed: ${err.message}`);
+    // If the user loads a video before the YouTube player is ready, queue it.
+    if (!playerReady || !player?.cueVideoById){
+      pendingVideoId = id;
+      setStatus("Loading queued — player is still initializing...");
+      return;
     }
+
+    player.cueVideoById(id);
+    setStatus(`Loaded videoId: ${id}`);
+    setTimeout(resizeCanvas, 60);
   };
 
-  $("playBtn").onclick = async () => { await initPlayerIfNeeded(); player?.playVideo?.(); };
-  $("pauseBtn").onclick = async () => { await initPlayerIfNeeded(); player?.pauseVideo?.(); };
+  $("playBtn").onclick = () => player?.playVideo?.();
+  $("pauseBtn").onclick = () => player?.pauseVideo?.();
 
-  $("muteBtn")?.addEventListener("click", async () => {
-    await initPlayerIfNeeded();
-    const muted = player?.isMuted?.() ?? true;
-    if (muted) player?.unMute?.(); else player?.mute?.();
-    updateMuteUI();
-  });
-
-  $("fwdBtn").onclick = async () => {
-    await initPlayerIfNeeded();
+  $("fwdBtn").onclick = () => {
     if (!player) return;
     player.seekTo(player.getCurrentTime() + DEFAULT_STEP, true);
   };
-  $("backBtn").onclick = async () => {
-    await initPlayerIfNeeded();
+  $("backBtn").onclick = () => {
     if (!player) return;
     player.seekTo(Math.max(0, player.getCurrentTime() - DEFAULT_STEP), true);
   };
 
   $("addTsBtn").onclick = addTimestampAtCurrent;
 
-  
+  $("colorSel").addEventListener("change", updateActiveColorUI);
+
   $("drawToggleBtn").onclick = () => {
     drawEnabled = !drawEnabled;
     const dl = $("drawLabel");
@@ -943,56 +902,16 @@ function init(){
   $("ytUrl").value = state.youtubeUrl || "";
 
   bindUI();
-  rebindCriticalControls();
   renderRosterTable();
   renderTimestampList();
   renderAthleteSearchResults();
 
   injectYouTubeApi();
-  initPlayerIfNeeded();
   setTimeout(resizeCanvas, 60);
 
   canvas.style.pointerEvents = "none";
 }
 
 
-// -------------------------
-// Safe boot (GitHub Pages)
-// -------------------------
-document.addEventListener("DOMContentLoaded", () => {
-  init();
-});
 
-function rebindCriticalControls(){
-  const safe = async (fn) => async (...args) => {
-    try { return await fn(...args); }
-    catch(e){ console.error(e); setStatus("Control error"); }
-  };
-
-  if ($("playBtn")) $("playBtn").onclick = safe(async () => {
-    await initPlayerIfNeeded();
-    player?.playVideo?.();
-  });
-
-  if ($("pauseBtn")) $("pauseBtn").onclick = safe(async () => {
-    await initPlayerIfNeeded();
-    player?.pauseVideo?.();
-  });
-
-  if ($("fwdBtn")) $("fwdBtn").onclick = safe(async () => {
-    await initPlayerIfNeeded();
-    player?.seekTo?.(Math.min(player.getDuration(), player.getCurrentTime() + 5), true);
-  });
-
-  if ($("backBtn")) $("backBtn").onclick = safe(async () => {
-    await initPlayerIfNeeded();
-    player?.seekTo?.(Math.max(0, player.getCurrentTime() - 5), true);
-  });
-
-  if ($("muteBtn")) $("muteBtn").onclick = safe(async () => {
-    await initPlayerIfNeeded();
-    const muted = player.isMuted?.();
-    muted ? player.unMute() : player.mute();
-    updateMuteUI();
-  });
-}
+document.addEventListener('DOMContentLoaded', () => { init(); });
