@@ -599,55 +599,94 @@ canvas.addEventListener("pointercancel", pointerUp);
 // -------------------------
 // YouTube IFrame API
 // -------------------------
-function injectYouTubeApi(){
-  const tag = document.createElement("script");
-  tag.src = "https://www.youtube.com/iframe_api";
-  document.head.appendChild(tag);
-}
 
-window.onYouTubeIframeAPIReady = () => {
-  playerInitStarted = true;
-  player = new YT.Player("player", {
-    height: "100%",
-    width: "100%",
-    videoId: state.youtubeId || undefined,
-    playerVars: { playsinline: 1, rel: 0, modestbranding: 1, iv_load_policy: 3, controls: 0, disablekb: 1, origin: window.location.origin },
-    events: {
-      onReady: () => {
-        playerReady = true;
-        setStatus("Player ready.");
-        // If user clicked Load before the player finished initializing, honor it now.
-        if (pendingVideoId) {
-          player.cueVideoById(pendingVideoId);
-          pendingVideoId = null;
-        } else if (state.youtubeId) {
-          player.cueVideoById(state.youtubeId);
-        }
-        if (defaultMuted && player.mute) player.mute();
-        updateMuteUI();
-        setTimeout(resizeCanvas, 60);
-      },
-      onError: (e) => {
-        const code = e?.data;
-        const map = {
-          2: "Invalid video ID or parameter.",
-          5: "HTML5 player error.",
-          100: "Video not found (removed/private).",
-          101: "Embed not allowed OR origin/restriction issue.",
-          150: "Embed not allowed OR origin/restriction issue."
-        };
-        setStatus(`Player error (${code}). ${map[code] || "Unknown error."}`);
-        console.warn("YT error:", e);
-      }
+let ytApiPromise = null;
+
+function loadYouTubeApiOnce(){
+  if (window.YT && window.YT.Player) return Promise.resolve();
+  if (ytApiPromise) return ytApiPromise;
+
+  ytApiPromise = new Promise((resolve, reject) => {
+    // Define callback BEFORE loading script (race fix)
+    window.onYouTubeIframeAPIReady = () => resolve();
+
+    // Avoid double-injecting script
+    if (!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')) {
+      const tag = document.createElement("script");
+      tag.src = "https://www.youtube.com/iframe_api";
+      tag.async = true;
+      tag.onerror = () => reject(new Error("Failed to load YouTube iframe_api"));
+      document.head.appendChild(tag);
     }
+
+    // Fallback: if callback gets missed, poll for YT.Player
+    const started = Date.now();
+    const t = setInterval(() => {
+      if (window.YT && window.YT.Player) {
+        clearInterval(t);
+        resolve();
+      } else if (Date.now() - started > 12000) {
+        clearInterval(t);
+        reject(new Error("YouTube API timeout"));
+      }
+    }, 100);
   });
 
-  // time pill
-  setInterval(() => {
-    if (!player || typeof player.getCurrentTime !== "function") return;
-    $("curTime").textContent = fmtTime(player.getCurrentTime());
-  }, 250);
-};
+  return ytApiPromise;
+}
+
+async function initPlayer(){
+  if (player) return player;
+  await loadYouTubeApiOnce();
+
+  return new Promise((resolve) => {
+    player = new YT.Player("player", {
+      height: "100%",
+      width: "100%",
+      videoId: state.youtubeId || undefined,
+      playerVars: { playsinline: 1, rel: 0, modestbranding: 1, iv_load_policy: 3, controls: 0, disablekb: 1, origin: window.location.origin },
+      events: {
+        onReady: () => {
+          playerReady = true;
+          setStatus("Player ready.");
+
+          // Honor any queued load
+          if (pendingVideoId) {
+            player.cueVideoById(pendingVideoId);
+            pendingVideoId = null;
+          } else if (state.youtubeId) {
+            player.cueVideoById(state.youtubeId);
+          }
+
+          if (defaultMuted && player.mute) player.mute();
+          updateMuteUI();
+          setTimeout(resizeCanvas, 60);
+          resolve(player);
+        },
+        onError: (e) => {
+          const code = e?.data;
+          const map = {
+            2: "Invalid video ID or parameter.",
+            5: "HTML5 player error.",
+            100: "Video not found or private.",
+            101: "Embedding blocked by owner.",
+            150: "Embedding blocked by owner."
+          };
+          setStatus(`Player error (${code}). ${map[code] || "Unknown error."}`);
+          console.warn("YT error:", e);
+          resolve(player);
+        }
+      }
+    });
+
+    // time pill
+    setInterval(() => {
+      if (!player || typeof player.getCurrentTime !== "function") return;
+      $("curTime").textContent = fmtTime(player.getCurrentTime());
+    }, 250);
+  });
+}
+
 
 // -------------------------
 // New Project (keep roster, clear timestamps)
@@ -736,54 +775,6 @@ function updateFilterX(){
 
 
 let defaultMuted = true;
-let playerInitStarted = false;
-
-function ensurePlayerReady(){
-  // If the API loaded but the global callback timing was missed, create the player ourselves.
-  try{
-    if (player || !window.YT || !YT.Player) return;
-    playerInitStarted = true;
-    player = new YT.Player("player", {
-      height: "100%",
-      width: "100%",
-      videoId: state.youtubeId || undefined,
-      playerVars: { playsinline: 1, rel: 0, modestbranding: 1, iv_load_policy: 3, controls: 0, disablekb: 1, origin: window.location.origin },
-      events: {
-        onReady: () => {
-          playerReady = true;
-          setStatus("Player ready.");
-          if (defaultMuted && player.mute) player.mute();
-          updateMuteUI();
-          if (pendingVideoId) {
-            player.cueVideoById(pendingVideoId);
-            pendingVideoId = null;
-          } else if (state.youtubeId) {
-            player.cueVideoById(state.youtubeId);
-          }
-          setTimeout(resizeCanvas, 60);
-        },
-        onError: (e) => {
-          const code = e?.data;
-          setStatus(`Player error (${code}). Video may block embedding.`);
-        },
-      }
-    });
-  }catch(e){
-    // no-op
-  }
-}
-
-function startPlayerWatchdog(){
-  if (playerInitStarted) return;
-  playerInitStarted = true;
-  // Try a few times in case the iframe API loads after UI is ready.
-  let tries = 0;
-  const t = setInterval(() => {
-    tries++;
-    ensurePlayerReady();
-    if (player || tries > 40) clearInterval(t); // ~10s
-  }, 250);
-}
 
 function updateMuteUI(){
   const btn = $("muteBtn");
@@ -814,6 +805,10 @@ function updateActiveColorUI(){
 // Wire up UI
 // -------------------------
 function bindUI(){
+  // dedupe clearDrawBtn (older patches may have added duplicates in HTML)
+  const clears = document.querySelectorAll('#clearDrawBtn');
+  clears.forEach((b,i)=>{ if(i>0) b.remove(); });
+
   // tabs
   $("tab-film").onclick = () => setTab("film");
   $("tab-roster").onclick = () => setTab("roster");
@@ -834,7 +829,7 @@ function bindUI(){
   $("btn-clear-roster").onclick = clearRoster;
 
   // film controls
-  $("loadBtn").onclick = () => {
+  $("loadBtn").onclick = async () => {
     const url = $("ytUrl").value.trim();
     const id = parseYouTubeId(url);
     if (!id){ setStatus("Could not parse YouTube ID. Paste a normal YouTube URL."); return; }
@@ -843,11 +838,12 @@ function bindUI(){
     state.youtubeId = id;
     saveState();
 
-    // If the user loads a video before the YouTube player is ready, queue it.
+    // If player isn't ready yet, initialize then load.
     if (!playerReady || !player?.cueVideoById){
       pendingVideoId = id;
-      setStatus("Loading queued — player is still initializing...");
-      startPlayerWatchdog();
+      setStatus("Initializing player…");
+      await initPlayer();
+      // initPlayer will cue pendingVideoId automatically
       return;
     }
 
@@ -861,8 +857,9 @@ function bindUI(){
   $("playBtn").onclick = () => player?.playVideo?.();
   $("pauseBtn").onclick = () => player?.pauseVideo?.();
 
-  $("muteBtn").onclick = () => {
-    if (!player) { startPlayerWatchdog(); return; }
+  $("muteBtn").onclick = async () => {
+    if (!player) await initPlayer();
+    if (!player) return;
     const muted = player.isMuted?.() ?? true;
     if (muted) player.unMute?.(); else player.mute?.();
     defaultMuted = player.isMuted?.() ?? defaultMuted;
@@ -940,7 +937,8 @@ function init(){
   renderTimestampList();
   renderAthleteSearchResults();
 
-  injectYouTubeApi();
+  // Initialize YouTube player deterministically (no refresh race)
+  initPlayer().catch((e)=>{ console.warn(e); setStatus('YouTube init failed.'); });
   setTimeout(resizeCanvas, 60);
 
   canvas.style.pointerEvents = "none";
