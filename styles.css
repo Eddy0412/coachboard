@@ -145,3 +145,5 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-appl
 .fullRowBtn{width:100%;justify-content:center;gap:8px}
 .btn .ic{width:18px;height:18px;fill:currentColor;vertical-align:middle}
 .ic-pencil{width:16px;height:16px;margin-right:6px}
+
+.ic-pin{width:18px;height:18px}

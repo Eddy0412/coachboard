@@ -870,7 +870,7 @@ function bindUI(){
   $("drawToggleBtn").onclick = () => {
     drawEnabled = !drawEnabled;
     const dl = $("drawLabel");
-    if (dl) dl.textContent = `Draw: ${drawEnabled ? "On" : "Off"}`;
+    if (dl) dl.textContent = `${drawEnabled ? "On" : "Off"}`;
     canvas.style.pointerEvents = drawEnabled ? "auto" : "none";
     setStatus(drawEnabled ? "Drawing enabled." : "Drawing disabled.");
   };
