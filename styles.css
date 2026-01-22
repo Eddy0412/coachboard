@@ -140,3 +140,7 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-appl
   .drawRow{flex-wrap:nowrap;align-items:center}
   .drawRow .btn,.drawRow .select{white-space:nowrap}
 }
+
+/* v1.2.9 */
+.btn .ic{width:18px;height:18px;fill:currentColor;vertical-align:middle;margin-right:8px}
+.btn .btnText{vertical-align:middle}
