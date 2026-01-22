@@ -124,10 +124,6 @@ let selectedTsId = null;
 
 // telestration state
 let drawEnabled = false;
-let selectedColor = "#00E5FF";
-let selectedColorName = "Cyan";
-let defaultMuted = true;
-
 let drawings = [];
 let activeStroke = null;
 
@@ -477,18 +473,13 @@ function renderAthleteSearchResults(){
   const box = $("athResults");
   box.innerHTML = "";
 
-  if (!selectedTsId){
-    box.innerHTML = `<div class="athRow"><div class="athLabel"><div class="athMain">Select a timestamp</div><div class="athSub">Tag athletes per timestamp</div></div></div>`;
-    return;
-  }
-
   if (!state.roster.length){
     box.innerHTML = `<div class="athRow"><div class="athLabel"><div class="athMain">Roster is empty</div><div class="athSub">Go to Roster tab and add athletes first.</div></div></div>`;
     return;
   }
 
-  const ts = state.timestamps.find(t => t.id === selectedTsId);
-  const tagged = new Set((ts.taggedAthleteIds||[]).map(Number));
+  const ts = selectedTsId ? state.timestamps.find(t => t.id === selectedTsId) : null;
+  const tagged = new Set(((ts?.taggedAthleteIds)||[]).map(Number));
 
   const rows = state.roster
     .slice()
@@ -505,7 +496,7 @@ function renderAthleteSearchResults(){
         <div class="athMain">${escapeHtml(rosterLabel(a))}</div>
         <div class="athSub">ID ${a.id}</div>
       </div>
-      <button class="btn ${isTagged ? "" : "btn--primary"}" data-id="${a.id}">${isTagged ? "Tagged" : "Tag"}</button>
+      <button class="btn ${isTagged ? "" : "btn--primary"}" data-id="${a.id}">${ts ? (isTagged ? "Tagged" : "Tag") : "Select timestamp"}</button>
     `;
     row.querySelector("button").onclick = () => {
       if (!ts.taggedAthleteIds) ts.taggedAthleteIds = [];
@@ -577,7 +568,7 @@ function pointerDown(e){
   activeStroke = {
     id: uidNumeric(),
     tool: "pen",
-    color: selectedColor,
+    color: $("colorSel").value,
     size: Number($("sizeSel").value),
     points: [relPoint(e.clientX, e.clientY)],
     createdAt: Date.now()
@@ -608,27 +599,14 @@ canvas.addEventListener("pointercancel", pointerUp);
 // -------------------------
 // YouTube IFrame API
 // -------------------------
-
-let ytApiInjected = false;
-function ensureYouTubePlayer(){
-  // If YT API is already loaded but player isn't created (race), create it.
-  if (window.YT && YT.Player && !player){
-    window.onYouTubeIframeAPIReady?.();
-  }
-}
-
 function injectYouTubeApi(){
-  if (ytApiInjected) return;
-  ytApiInjected = true;
-  // Don't inject twice
-  if (document.querySelector('script[src="https://www.youtube.com/iframe_api"]')) return;
   const tag = document.createElement("script");
   tag.src = "https://www.youtube.com/iframe_api";
   document.head.appendChild(tag);
 }
 
-
 window.onYouTubeIframeAPIReady = () => {
+  playerInitStarted = true;
   player = new YT.Player("player", {
     height: "100%",
     width: "100%",
@@ -638,18 +616,15 @@ window.onYouTubeIframeAPIReady = () => {
       onReady: () => {
         playerReady = true;
         setStatus("Player ready.");
-        if (defaultMuted && player.mute) player.mute();
-        updateMuteUI();
         // If user clicked Load before the player finished initializing, honor it now.
         if (pendingVideoId) {
           player.cueVideoById(pendingVideoId);
-          if (defaultMuted && player.mute) player.mute();
-          updateMuteUI();
-          setStatus(`Loaded videoId: ${pendingVideoId}`);
           pendingVideoId = null;
         } else if (state.youtubeId) {
           player.cueVideoById(state.youtubeId);
         }
+        if (defaultMuted && player.mute) player.mute();
+        updateMuteUI();
         setTimeout(resizeCanvas, 60);
       },
       onError: (e) => {
@@ -759,6 +734,66 @@ function updateFilterX(){
   $("clearFilterBtn").style.visibility = has ? "visible" : "hidden";
 }
 
+
+let defaultMuted = true;
+let playerInitStarted = false;
+
+function ensurePlayerReady(){
+  // If the API loaded but the global callback timing was missed, create the player ourselves.
+  try{
+    if (player || !window.YT || !YT.Player) return;
+    playerInitStarted = true;
+    player = new YT.Player("player", {
+      height: "100%",
+      width: "100%",
+      videoId: state.youtubeId || undefined,
+      playerVars: { playsinline: 1, rel: 0, modestbranding: 1, iv_load_policy: 3, controls: 0, disablekb: 1, origin: window.location.origin },
+      events: {
+        onReady: () => {
+          playerReady = true;
+          setStatus("Player ready.");
+          if (defaultMuted && player.mute) player.mute();
+          updateMuteUI();
+          if (pendingVideoId) {
+            player.cueVideoById(pendingVideoId);
+            pendingVideoId = null;
+          } else if (state.youtubeId) {
+            player.cueVideoById(state.youtubeId);
+          }
+          setTimeout(resizeCanvas, 60);
+        },
+        onError: (e) => {
+          const code = e?.data;
+          setStatus(`Player error (${code}). Video may block embedding.`);
+        },
+      }
+    });
+  }catch(e){
+    // no-op
+  }
+}
+
+function startPlayerWatchdog(){
+  if (playerInitStarted) return;
+  playerInitStarted = true;
+  // Try a few times in case the iframe API loads after UI is ready.
+  let tries = 0;
+  const t = setInterval(() => {
+    tries++;
+    ensurePlayerReady();
+    if (player || tries > 40) clearInterval(t); // ~10s
+  }, 250);
+}
+
+function updateMuteUI(){
+  const btn = $("muteBtn");
+  if (!btn || !player) return;
+  const muted = player.isMuted?.() ?? true;
+  btn.classList.toggle("is-unmuted", !muted);
+  btn.title = muted ? "Muted" : "Unmuted";
+  btn.setAttribute("aria-label", muted ? "Muted" : "Unmuted");
+}
+
 // -------------------------
 // Status
 // -------------------------
@@ -775,46 +810,10 @@ function updateActiveColorUI(){
   if (sel) sel.style.setProperty("--selColor", c);
 }
 
-
-function updateMuteUI(){
-  const btn = $("muteBtn");
-  if (!btn || !player) return;
-  const muted = player.isMuted?.() ?? true;
-  btn.classList.toggle("is-muted", muted);
-  btn.title = muted ? "Muted" : "Unmuted";
-  btn.setAttribute("aria-label", muted ? "Muted" : "Unmuted");
-}
-
-
-function applySelectedColor(){
-  $("activeColorDot") && ($("activeColorDot").style.background = selectedColor);
-  $("colorSwatchBtn") && ($("colorSwatchBtn").style.background = selectedColor);
-  $("colorBtnLabel") && ($("colorBtnLabel").textContent = selectedColorName);
-}
-function closeColorMenu(){ $("colorMenu")?.classList.remove("is-open"); }
-function bindColorPicker(){
-  const btn = $("colorBtn");
-  const menu = $("colorMenu");
-  if (!btn || !menu) return;
-  applySelectedColor();
-  btn.addEventListener("click", (e) => { e.stopPropagation(); menu.classList.toggle("is-open"); });
-  menu.addEventListener("click", (e) => {
-    const item = e.target.closest(".colorItem");
-    if (!item) return;
-    selectedColor = item.getAttribute("data-color");
-    selectedColorName = item.getAttribute("data-name");
-    applySelectedColor();
-    closeColorMenu();
-  });
-  document.addEventListener("click", () => closeColorMenu());
-  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeColorMenu(); });
-}
-
 // -------------------------
 // Wire up UI
 // -------------------------
 function bindUI(){
-  bindColorPicker();
   // tabs
   $("tab-film").onclick = () => setTab("film");
   $("tab-roster").onclick = () => setTab("roster");
@@ -848,13 +847,13 @@ function bindUI(){
     if (!playerReady || !player?.cueVideoById){
       pendingVideoId = id;
       setStatus("Loading queued — player is still initializing...");
-      ensureYouTubePlayer();
-      setTimeout(ensureYouTubePlayer, 250);
-      setTimeout(ensureYouTubePlayer, 750);
+      startPlayerWatchdog();
       return;
     }
 
     player.cueVideoById(id);
+    if (defaultMuted && player.mute) player.mute();
+    updateMuteUI();
     setStatus(`Loaded videoId: ${id}`);
     setTimeout(resizeCanvas, 60);
   };
@@ -863,8 +862,7 @@ function bindUI(){
   $("pauseBtn").onclick = () => player?.pauseVideo?.();
 
   $("muteBtn").onclick = () => {
-    ensureYouTubePlayer();
-    if (!player) return;
+    if (!player) { startPlayerWatchdog(); return; }
     const muted = player.isMuted?.() ?? true;
     if (muted) player.unMute?.(); else player.mute?.();
     defaultMuted = player.isMuted?.() ?? defaultMuted;

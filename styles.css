@@ -119,30 +119,15 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-appl
 /* Color select: show current color as a left dot (via --selColor) */
 .colorSel{padding-left:34px; background-image: radial-gradient(circle at 14px 50%, var(--selColor, #00E5FF) 0 6px, transparent 7px); background-repeat:no-repeat}
 
-/* v1.2.3 patches */
 .drawRow{align-items:center}
-@media (min-width: 900px){ .drawRow{flex-wrap:nowrap} }
 
-.colorPicker{position:relative;display:inline-flex}
-.colorBtn{display:inline-flex;align-items:center;gap:10px;min-width:150px;justify-content:flex-start}
-.colorBtn .chev{margin-left:auto;color:var(--muted);font-size:12px}
-.colorMenu{
-  position:absolute; top:46px; left:0;
-  background:var(--card); border:1px solid var(--border); border-radius:12px;
-  min-width:190px; padding:6px; z-index:80;
-  box-shadow: 0 10px 30px rgba(0,0,0,.35);
-  display:none;
+/* v1.2.4 layout fixes */
+.drawRow{gap:10px}
+@media (min-width: 900px){
+  .drawRow{flex-wrap:nowrap}
+  .drawRow .btn, .drawRow .select{white-space:nowrap}
 }
-.colorMenu.is-open{display:block}
-.colorItem{
-  width:100%; display:flex; align-items:center; gap:10px;
-  padding:10px; border-radius:10px;
-  background:transparent; border:1px solid transparent; color:var(--text);
-  cursor:pointer; text-align:left;
-}
-.colorItem:hover{background:rgba(255,255,255,0.03); border-color:var(--primary-br)}
-.colorSwatch{width:12px;height:12px;border-radius:999px;border:1px solid rgba(255,255,255,0.25);display:inline-block;background:#00E5FF}
-
-/* Mute icon stroke */
-.muteIcon .pOff{stroke:currentColor;stroke-width:2;fill:none;opacity:.0}
-.btn.is-muted .muteIcon .pOff{opacity:1}
+.iconBtn .ic{width:22px;height:22px;fill:currentColor}
+.iconBtn .ic-vol{display:none}
+.iconBtn.is-unmuted .ic-vol{display:inline}
+.iconBtn.is-unmuted .ic-mute{display:none}
