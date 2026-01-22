@@ -124,10 +124,9 @@ let selectedTsId = null;
 
 // telestration state
 let drawEnabled = false;
+let selectedColor = '#00E5FF';
 let drawings = [];
 let activeStroke = null;
-let selectedColor = '#00E5FF';
-
 
 // -------------------------
 // Persistence
@@ -607,18 +606,9 @@ canvas.addEventListener("pointercancel", pointerUp);
 // YouTube IFrame API
 // -------------------------
 function injectYouTubeApi(){
-  // Avoid double-inject on GitHub Pages / caching
-  if (!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')){
-    const tag = document.createElement("script");
-    tag.src = "https://www.youtube.com/iframe_api";
-    tag.async = true;
-    document.head.appendChild(tag);
-  }
-  // If API already present (script cached), trigger ready on next tick.
-  if (window.YT && window.YT.Player && typeof window.onYouTubeIframeAPIReady === "function"){
-    setTimeout(() => window.onYouTubeIframeAPIReady(), 0);
-  }
-}
+  const tag = document.createElement("script");
+  tag.src = "https://www.youtube.com/iframe_api";
+  document.head.appendChild(tag);
 }
 
 window.onYouTubeIframeAPIReady = () => {
@@ -631,7 +621,6 @@ window.onYouTubeIframeAPIReady = () => {
       onReady: () => {
         playerReady = true;
         setStatus("Player ready.");
-        try{ player.mute?.(); $("muteBtn")?.classList.remove("is-unmuted"); }catch(e){}
         // If user clicked Load before the player finished initializing, honor it now.
         if (pendingVideoId) {
           player.cueVideoById(pendingVideoId);
@@ -774,27 +763,19 @@ function bindUI(){
 
   $("goRosterBtn").onclick = () => setTab("roster");
 
-  // Swatch picker
-  document.querySelectorAll(".swatch").forEach((b) => {
-    b.addEventListener("click", () => {
-      selectedColor = b.getAttribute("data-color");
-      updateActiveColorUI();
+  // Color swatches
+  document.querySelectorAll(".swatch").forEach(btn => {
+    btn.addEventListener("click", () => {
+      selectedColor = btn.dataset.color;
+      document.querySelectorAll(".swatch").forEach(b => b.classList.remove("is-active"));
+      btn.classList.add("is-active");
+      const dot = $("activeColorDot");
+      if (dot) dot.style.background = selectedColor;
     });
   });
-  updateActiveColorUI();
 
-  // Mute toggle (button reflects state)
-  $("muteBtn")?.addEventListener("click", () => {
-    if (!player) return;
-    const muted = player.isMuted?.() ?? true;
-    if (muted) {
-      player.unMute?.();
-      $("muteBtn").classList.add("is-unmuted");
-    } else {
-      player.mute?.();
-      $("muteBtn").classList.remove("is-unmuted");
-    }
-  });
+  const dot = $("activeColorDot");
+  if (dot) dot.style.background = selectedColor;
 
 
   // project import/export
@@ -834,6 +815,12 @@ function bindUI(){
 
   $("playBtn").onclick = () => player?.playVideo?.();
   $("pauseBtn").onclick = () => player?.pauseVideo?.();
+
+  $("muteBtn")?.addEventListener("click", () => {
+    if (!player) return;
+    const muted = player.isMuted?.() ?? true;
+    muted ? player.unMute?.() : player.mute?.();
+  });
 
   $("fwdBtn").onclick = () => {
     if (!player) return;
@@ -911,7 +898,6 @@ function init(){
 
   canvas.style.pointerEvents = "none";
 }
-
 
 
 document.addEventListener('DOMContentLoaded', () => { init(); });
