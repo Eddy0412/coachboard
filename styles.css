@@ -141,13 +141,7 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-appl
   .drawRow .btn,.drawRow .select{white-space:nowrap}
 }
 
-/* v1.2.9 */
-.btn .ic{width:18px;height:18px;fill:currentColor;vertical-align:middle;margin-right:8px}
-.btn .btnText{vertical-align:middle}
-
-/* UI tweaks */
-.iconBtn svg{width:20px;height:20px;display:block}
-.iconBtn{display:inline-flex;align-items:center;justify-content:center}
 .fullWidthRow{width:100%}
-.fullRowBtn{width:100%; justify-content:center}
+.fullRowBtn{width:100%;justify-content:center;gap:8px}
+.btn .ic{width:18px;height:18px;fill:currentColor;vertical-align:middle}
 .ic-pencil{width:16px;height:16px;margin-right:6px}
