@@ -509,7 +509,13 @@ function renderAthleteSearchResults(){
     `;
     row.querySelector("button").onclick = () => {
       if (!ts.taggedAthleteIds) ts.taggedAthleteIds = [];
-      if (!ts.taggedAthleteIds.includes(a.id)) ts.taggedAthleteIds.push(a.id);
+      const idNum = Number(a.id);
+      const has = (ts.taggedAthleteIds||[]).map(Number).includes(idNum);
+      if (has) {
+        ts.taggedAthleteIds = (ts.taggedAthleteIds||[]).filter(x => Number(x) !== idNum);
+      } else {
+        ts.taggedAthleteIds.push(a.id);
+      }
       saveState();
       renderTaggedAthletes();
       renderTimestampList();
