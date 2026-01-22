@@ -746,11 +746,16 @@ function setStatus(msg){
 
 
 function updateActiveColorUI(){
-  const c = $("colorSel").value;
-  const dot = $("activeColorDot");
-  if (dot) dot.style.background = c;
+  // Works for either <select id="colorSel"> or swatches
   const sel = $("colorSel");
-  if (sel) sel.style.setProperty("--selColor", c);
+  if (sel && sel.value !== selectedColor) sel.value = selectedColor;
+
+  const dot = $("activeColorDot");
+  if (dot) dot.style.background = selectedColor;
+
+  document.querySelectorAll(".swatch").forEach(b => {
+    b.classList.toggle("is-active", (b.dataset.color || "").toLowerCase() === selectedColor.toLowerCase());
+  });
 }
 
 // -------------------------
@@ -833,7 +838,28 @@ function bindUI(){
 
   $("addTsBtn").onclick = addTimestampAtCurrent;
 
-  $("colorSel").addEventListener("change", updateActiveColorUI);
+  const colorSel = $("colorSel");
+  if (colorSel){
+    // Keep selectedColor in sync for both dropdown and swatches UI
+    selectedColor = colorSel.value || selectedColor;
+    colorSel.addEventListener("change", () => {
+      selectedColor = colorSel.value || selectedColor;
+      updateActiveColorUI();
+    });
+  }
+
+  // Swatches UI (if present)
+  document.querySelectorAll(".swatch").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      selectedColor = btn.dataset.color || selectedColor;
+      // If select exists, sync it
+      if (colorSel) colorSel.value = selectedColor;
+      document.querySelectorAll(".swatch").forEach(b => b.classList.remove("is-active"));
+      btn.classList.add("is-active");
+      updateActiveColorUI();
+    });
+  });
+
 
   $("drawToggleBtn").onclick = () => {
     drawEnabled = !drawEnabled;
