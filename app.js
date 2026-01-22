@@ -836,7 +836,7 @@ function bindUI(){
   $("btn-clear-roster").onclick = clearRoster;
 
   // film controls
-  $("loadBtn").onclick = () => {
+  $("loadBtn").onclick = async () => {
     const url = $("ytUrl").value.trim();
     const id = parseYouTubeId(url);
     if (!id){ setStatus("Could not parse YouTube ID. Paste a normal YouTube URL."); return; }
@@ -845,20 +845,28 @@ function bindUI(){
     state.youtubeId = id;
     saveState();
 
-    // If the user loads a video before the YouTube player is ready, queue it.
-    if (!playerReady || !player?.cueVideoById){
-      pendingVideoId = id;
-      setStatus("Loading queued — player is still initializing...");
-      return;
-    }
+    pendingVideoId = id;
+    setStatus("Initializing player…");
 
-    player.cueVideoById(id);
-    setStatus(`Loaded videoId: ${id}`);
-    setTimeout(resizeCanvas, 60);
+    try{
+      await initPlayerIfNeeded();
+      if (!playerReady || !player?.cueVideoById){
+        setStatus("Player still initializing… try again in a moment.");
+        return;
+      }
+      player.cueVideoById(id);
+      if (defaultMuted && player.mute) player.mute();
+      updateMuteUI();
+      pendingVideoId = null;
+      setStatus(`Loaded videoId: ${id}`);
+      setTimeout(resizeCanvas, 60);
+    }catch(err){
+      setStatus(`YouTube init failed: ${err.message}`);
+    }
   };
 
-  $("playBtn").onclick = () => player?.playVideo?.();
-  $("pauseBtn").onclick = () => player?.pauseVideo?.();
+  $("playBtn").onclick = async () => { await initPlayerIfNeeded(); player?.playVideo?.(); };
+  $("pauseBtn").onclick = async () => { await initPlayerIfNeeded(); player?.pauseVideo?.(); };
 
   $("muteBtn")?.addEventListener("click", async () => {
     await initPlayerIfNeeded();
@@ -867,11 +875,13 @@ function bindUI(){
     updateMuteUI();
   });
 
-  $("fwdBtn").onclick = () => {
+  $("fwdBtn").onclick = async () => {
+    await initPlayerIfNeeded();
     if (!player) return;
     player.seekTo(player.getCurrentTime() + DEFAULT_STEP, true);
   };
-  $("backBtn").onclick = () => {
+  $("backBtn").onclick = async () => {
+    await initPlayerIfNeeded();
     if (!player) return;
     player.seekTo(Math.max(0, player.getCurrentTime() - DEFAULT_STEP), true);
   };
