@@ -119,12 +119,15 @@ let state = {
 
 let player = null;
 let playerReady = false;
-let defaultMuted = true;
 let pendingVideoId = null;
 let selectedTsId = null;
 
 // telestration state
 let drawEnabled = false;
+let selectedColor = "#00E5FF";
+let selectedColorName = "Cyan";
+let defaultMuted = true;
+
 let drawings = [];
 let activeStroke = null;
 
@@ -474,13 +477,18 @@ function renderAthleteSearchResults(){
   const box = $("athResults");
   box.innerHTML = "";
 
+  if (!selectedTsId){
+    box.innerHTML = `<div class="athRow"><div class="athLabel"><div class="athMain">Select a timestamp</div><div class="athSub">Tag athletes per timestamp</div></div></div>`;
+    return;
+  }
+
   if (!state.roster.length){
     box.innerHTML = `<div class="athRow"><div class="athLabel"><div class="athMain">Roster is empty</div><div class="athSub">Go to Roster tab and add athletes first.</div></div></div>`;
     return;
   }
 
-  const ts = selectedTsId ? state.timestamps.find(t => t.id === selectedTsId) : null;
-  const tagged = new Set(((ts?.taggedAthleteIds)||[]).map(Number));
+  const ts = state.timestamps.find(t => t.id === selectedTsId);
+  const tagged = new Set((ts.taggedAthleteIds||[]).map(Number));
 
   const rows = state.roster
     .slice()
@@ -497,7 +505,7 @@ function renderAthleteSearchResults(){
         <div class="athMain">${escapeHtml(rosterLabel(a))}</div>
         <div class="athSub">ID ${a.id}</div>
       </div>
-      <button class="btn ${isTagged ? "" : "btn--primary"}" data-id="${a.id}">${ts ? (isTagged ? "Tagged" : "Tag") : "Select timestamp"}</button>
+      <button class="btn ${isTagged ? "" : "btn--primary"}" data-id="${a.id}">${isTagged ? "Tagged" : "Tag"}</button>
     `;
     row.querySelector("button").onclick = () => {
       if (!ts.taggedAthleteIds) ts.taggedAthleteIds = [];
@@ -569,7 +577,7 @@ function pointerDown(e){
   activeStroke = {
     id: uidNumeric(),
     tool: "pen",
-    color: $("colorSel").value,
+    color: selectedColor,
     size: Number($("sizeSel").value),
     points: [relPoint(e.clientX, e.clientY)],
     createdAt: Date.now()
@@ -600,11 +608,25 @@ canvas.addEventListener("pointercancel", pointerUp);
 // -------------------------
 // YouTube IFrame API
 // -------------------------
+
+let ytApiInjected = false;
+function ensureYouTubePlayer(){
+  // If YT API is already loaded but player isn't created (race), create it.
+  if (window.YT && YT.Player && !player){
+    window.onYouTubeIframeAPIReady?.();
+  }
+}
+
 function injectYouTubeApi(){
+  if (ytApiInjected) return;
+  ytApiInjected = true;
+  // Don't inject twice
+  if (document.querySelector('script[src="https://www.youtube.com/iframe_api"]')) return;
   const tag = document.createElement("script");
   tag.src = "https://www.youtube.com/iframe_api";
   document.head.appendChild(tag);
 }
+
 
 window.onYouTubeIframeAPIReady = () => {
   player = new YT.Player("player", {
@@ -621,6 +643,9 @@ window.onYouTubeIframeAPIReady = () => {
         // If user clicked Load before the player finished initializing, honor it now.
         if (pendingVideoId) {
           player.cueVideoById(pendingVideoId);
+          if (defaultMuted && player.mute) player.mute();
+          updateMuteUI();
+          setStatus(`Loaded videoId: ${pendingVideoId}`);
           pendingVideoId = null;
         } else if (state.youtubeId) {
           player.cueVideoById(state.youtubeId);
@@ -734,15 +759,6 @@ function updateFilterX(){
   $("clearFilterBtn").style.visibility = has ? "visible" : "hidden";
 }
 
-
-function updateMuteUI(){
-  const btn = $("muteBtn");
-  if (!btn || !player) return;
-  const isMuted = player.isMuted?.() ?? true;
-  btn.title = isMuted ? "Unmute" : "Mute";
-  btn.setAttribute("aria-label", isMuted ? "Unmute" : "Mute");
-}
-
 // -------------------------
 // Status
 // -------------------------
@@ -760,24 +776,45 @@ function updateActiveColorUI(){
 }
 
 
-function syncColorUIFromSelect(){
-  const sel = $("colorSel");
-  if (!sel) return;
-  const opt = sel.options[sel.selectedIndex];
-  const color = sel.value;
-  const name = opt?.textContent?.trim() || "Color";
-  $("colorBtnLabel")?.replaceChildren(document.createTextNode(name));
-  const dot = $("colorDotLg");
-  if (dot) dot.style.background = color;
-  const pill = $("activeColorDot");
-  if (pill) pill.style.background = color;
+function updateMuteUI(){
+  const btn = $("muteBtn");
+  if (!btn || !player) return;
+  const muted = player.isMuted?.() ?? true;
+  btn.classList.toggle("is-muted", muted);
+  btn.title = muted ? "Muted" : "Unmuted";
+  btn.setAttribute("aria-label", muted ? "Muted" : "Unmuted");
+}
+
+
+function applySelectedColor(){
+  $("activeColorDot") && ($("activeColorDot").style.background = selectedColor);
+  $("colorSwatchBtn") && ($("colorSwatchBtn").style.background = selectedColor);
+  $("colorBtnLabel") && ($("colorBtnLabel").textContent = selectedColorName);
 }
 function closeColorMenu(){ $("colorMenu")?.classList.remove("is-open"); }
+function bindColorPicker(){
+  const btn = $("colorBtn");
+  const menu = $("colorMenu");
+  if (!btn || !menu) return;
+  applySelectedColor();
+  btn.addEventListener("click", (e) => { e.stopPropagation(); menu.classList.toggle("is-open"); });
+  menu.addEventListener("click", (e) => {
+    const item = e.target.closest(".colorItem");
+    if (!item) return;
+    selectedColor = item.getAttribute("data-color");
+    selectedColorName = item.getAttribute("data-name");
+    applySelectedColor();
+    closeColorMenu();
+  });
+  document.addEventListener("click", () => closeColorMenu());
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeColorMenu(); });
+}
 
 // -------------------------
 // Wire up UI
 // -------------------------
 function bindUI(){
+  bindColorPicker();
   // tabs
   $("tab-film").onclick = () => setTab("film");
   $("tab-roster").onclick = () => setTab("roster");
@@ -811,12 +848,13 @@ function bindUI(){
     if (!playerReady || !player?.cueVideoById){
       pendingVideoId = id;
       setStatus("Loading queued — player is still initializing...");
+      ensureYouTubePlayer();
+      setTimeout(ensureYouTubePlayer, 250);
+      setTimeout(ensureYouTubePlayer, 750);
       return;
     }
 
     player.cueVideoById(id);
-    if (defaultMuted && player.mute) player.mute();
-    updateMuteUI();
     setStatus(`Loaded videoId: ${id}`);
     setTimeout(resizeCanvas, 60);
   };
@@ -825,9 +863,10 @@ function bindUI(){
   $("pauseBtn").onclick = () => player?.pauseVideo?.();
 
   $("muteBtn").onclick = () => {
+    ensureYouTubePlayer();
     if (!player) return;
-    const isMuted = player.isMuted?.() ?? true;
-    if (isMuted) player.unMute?.(); else player.mute?.();
+    const muted = player.isMuted?.() ?? true;
+    if (muted) player.unMute?.(); else player.mute?.();
     defaultMuted = player.isMuted?.() ?? defaultMuted;
     updateMuteUI();
   };
@@ -843,8 +882,9 @@ function bindUI(){
 
   $("addTsBtn").onclick = addTimestampAtCurrent;
 
-  $("colorSel").addEventListener("change", () => { syncColorUIFromSelect(); });
-$("drawToggleBtn").onclick = () => {
+  $("colorSel").addEventListener("change", updateActiveColorUI);
+
+  $("drawToggleBtn").onclick = () => {
     drawEnabled = !drawEnabled;
     const dl = $("drawLabel");
     if (dl) dl.textContent = `Draw: ${drawEnabled ? "On" : "Off"}`;

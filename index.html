@@ -37,7 +37,7 @@
         <div class="row wrap">
           <button class="btn iconBtn" id="playBtn" title="Play" aria-label="Play"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></button>
           <button class="btn iconBtn" id="pauseBtn" title="Pause" aria-label="Pause"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg></button>
-          <button class="btn iconBtn" id="muteBtn" title="Unmute" aria-label="Toggle mute"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 10v4h3l4 4V6L8 10H5zm13.5 2a4.5 4.5 0 0 0-2.25-3.9v7.8A4.5 4.5 0 0 0 18.5 12z"/></svg></button>
+          <button class="btn iconBtn" id="muteBtn" title="Muted" aria-label="Toggle mute"><svg class="muteIcon" viewBox="0 0 24 24" aria-hidden="true"><path class="pOn" d="M5 10v4h3l4 4V6L8 10H5zm13.5 2a4.5 4.5 0 0 0-2.25-3.9v7.8A4.5 4.5 0 0 0 18.5 12z"/><path class="pOff" d="M3 3l18 18" /></svg></button>
           <button class="btn iconBtn" id="backBtn" title="Reverse (Step -5s)" aria-label="Reverse step back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18V6l-8.5 6L11 18zm1-6l8.5 6V6L12 12z"/></svg></button>
           <button class="btn iconBtn" id="fwdBtn" title="Forward (Step +5s)" aria-label="Forward step"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 6v12l8.5-6L13 6zM3 18l8.5-6L3 6v12z"/></svg></button>
           <button class="btn btn--primary" id="addTsBtn">+ Timestamp @ Current</button>
@@ -46,37 +46,28 @@
         <div class="row wrap drawRow">
   <button class="btn" id="drawToggleBtn" title="Toggle drawing" aria-label="Toggle drawing"><span id="drawLabel">Draw: Off</span> <span class="colorDot" id="activeColorDot" aria-hidden="true"></span></button>
   <div class="colorPicker">
-  <button class="select colorBtn" id="colorBtn" title="Select draw color" aria-label="Select draw color">
-    <span class="colorSwatch" id="colorDotLg" aria-hidden="true"></span>
-    <span id="colorBtnLabel">Color</span>
-    <span class="chev" aria-hidden="true">▾</span>
-  </button>
-  <div class="colorMenu" id="colorMenu" role="menu" aria-label="Color menu">
-    <button class="colorItem" data-color="#00E5FF" data-name="Cyan" role="menuitem"><span class="colorSwatch" style="background:#00E5FF"></span> Cyan</button>
-    <button class="colorItem" data-color="#FF4D4D" data-name="Red" role="menuitem"><span class="colorSwatch" style="background:#FF4D4D"></span> Red</button>
-    <button class="colorItem" data-color="#FFD166" data-name="Yellow" role="menuitem"><span class="colorSwatch" style="background:#FFD166"></span> Yellow</button>
-    <button class="colorItem" data-color="#A3FF12" data-name="Green" role="menuitem"><span class="colorSwatch" style="background:#A3FF12"></span> Green</button>
-    <button class="colorItem" data-color="#FFFFFF" data-name="White" role="menuitem"><span class="colorSwatch" style="background:#FFFFFF"></span> White</button>
+    <button class="select colorBtn" id="colorBtn" title="Select draw color" aria-label="Select draw color">
+      <span class="colorSwatch" id="colorSwatchBtn" aria-hidden="true"></span>
+      <span id="colorBtnLabel">Cyan</span>
+      <span class="chev" aria-hidden="true">▾</span>
+    </button>
+    <div class="colorMenu" id="colorMenu" role="menu" aria-label="Color menu">
+      <button class="colorItem" data-color="#00E5FF" data-name="Cyan" role="menuitem"><span class="colorSwatch" style="background:#00E5FF"></span> Cyan</button>
+      <button class="colorItem" data-color="#FF4D4D" data-name="Red" role="menuitem"><span class="colorSwatch" style="background:#FF4D4D"></span> Red</button>
+      <button class="colorItem" data-color="#FFD166" data-name="Yellow" role="menuitem"><span class="colorSwatch" style="background:#FFD166"></span> Yellow</button>
+      <button class="colorItem" data-color="#A3FF12" data-name="Green" role="menuitem"><span class="colorSwatch" style="background:#A3FF12"></span> Green</button>
+      <button class="colorItem" data-color="#FFFFFF" data-name="White" role="menuitem"><span class="colorSwatch" style="background:#FFFFFF"></span> White</button>
+    </div>
   </div>
-  <select id="colorSel" class="select colorSel nativeHidden">
-            <option value="#00E5FF">Cyan</option>
-            <option value="#FF4D4D">Red</option>
-            <option value="#FFD166">Yellow</option>
-            <option value="#A3FF12">Green</option>
-            <option value="#FFFFFF">White</option>
-          </select>
-</div>
   <select id="sizeSel" class="select">
             <option value="2">2px</option>
             <option value="4" selected>4px</option>
             <option value="8">8px</option>
             <option value="12">12px</option>
           </select>
-  <div class="rowSpacer"></div>
-  <button class="btn btn--danger" id="clearDrawBtn" title="Clear drawings for selected timestamp">Clear drawings</button>
+  <button class="btn btn--danger" id="clearDrawBtn" title="Clear drawings for selected timestamp">Clear</button>
 </div>
-  <button class="btn btn--danger" id="clearDrawBtn" title="Clear drawings for selected timestamp">Clear drawings</button>
-</div>
+  </div>
 
         <div class="hr"></div>
 
