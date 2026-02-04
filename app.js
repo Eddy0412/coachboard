@@ -122,6 +122,12 @@ let playerReady = false;
 let pendingVideoId = null;
 let selectedTsId = null;
 
+// Timed drawing overlay during playback (keeps design/UX intact)
+let overlayDurationPreset = 10; // seconds
+let overlayHideTimer = null;
+let endPauseTimer = null;
+
+
 // telestration state
 let drawEnabled = false;
 let selectedColor = '#00E5FF';
@@ -377,7 +383,9 @@ function addTimestampAtCurrent(){
     title: "New coaching point",
     description: "",
     taggedAthleteIds: [],
-    drawings: []
+    drawings: [],
+    overlayShowSec: overlayDurationPreset,
+    endTime: null
   };
   state.timestamps.push(ts);
   saveState();
@@ -394,6 +402,12 @@ function selectTimestamp(id){
   $("tsTitle").value = ts.title || "";
   $("tsDesc").value = ts.description || "";
   $("tsTimePill").textContent = fmtTime(ts.time);
+
+  // overlay playback defaults
+  if (typeof ts.overlayShowSec !== 'number') ts.overlayShowSec = overlayDurationPreset;
+  if (typeof ts.endTime !== 'number') ts.endTime = null;
+  showOverlay();
+
 
   // drawings
   drawings = ts.drawings || [];
@@ -565,6 +579,20 @@ function drawStroke(stroke){
   }
   ctx.stroke();
   ctx.restore();
+}
+
+function clearPlaybackTimers(){
+  if (overlayHideTimer){ clearTimeout(overlayHideTimer); overlayHideTimer = null; }
+  if (endPauseTimer){ clearTimeout(endPauseTimer); endPauseTimer = null; }
+}
+
+function showOverlay(){
+  clearPlaybackTimers();
+  canvas.style.opacity = "1";
+}
+
+function hideOverlay(){
+  canvas.style.opacity = "0";
 }
 
 function redrawAll(){
@@ -824,8 +852,37 @@ function bindUI(){
     setTimeout(resizeCanvas, 60);
   };
 
-  $("playBtn").onclick = () => player?.playVideo?.();
-  $("pauseBtn").onclick = () => player?.pauseVideo?.();
+  $("playBtn").onclick = () => { armTimestampPlayback(); player?.playVideo?.(); };
+  $("pauseBtn").onclick = () => { clearPlaybackTimers(); showOverlay(); player?.pauseVideo?.(); };
+
+  function armTimestampPlayback(){
+    clearPlaybackTimers();
+    if (!selectedTsId || !player) return;
+    const ts = state.timestamps.find(t => t.id === selectedTsId);
+    if (!ts) return;
+
+    // If drawings exist, show them for ts.overlayShowSec seconds, then hide while video continues.
+    const dur = Math.max(0, Number(ts.overlayShowSec ?? overlayDurationPreset));
+    if ((ts.drawings||[]).length && dur > 0){
+      showOverlay();
+      overlayHideTimer = setTimeout(() => { hideOverlay(); }, dur * 1000);
+    }
+
+    // If endTime is set, pause when playback reaches it.
+    if (ts.endTime != null){
+      const end = Number(ts.endTime);
+      const now = Number(player.getCurrentTime?.() ?? 0);
+      const ms = Math.max(0, (end - now) * 1000);
+      if (ms > 0){
+        endPauseTimer = setTimeout(() => {
+          player.pauseVideo?.();
+          showOverlay();
+          setStatus(`Reached end @ ${fmtTime(end)}.`);
+        }, ms);
+      }
+    }
+  }
+
 
   $("muteBtn")?.addEventListener("click", () => {
     if (!player) return;
@@ -843,6 +900,36 @@ function bindUI(){
   };
 
   $("addTsBtn").onclick = addTimestampAtCurrent;
+
+  // Overlay duration presets (applies to new timestamps; also applies to selected timestamp for speed)
+  const applyPreset = (sec) => {
+    overlayDurationPreset = sec;
+    if (selectedTsId){
+      const ts = state.timestamps.find(t => t.id === selectedTsId);
+      if (ts){ ts.overlayShowSec = sec; saveState(); }
+    }
+    setStatus(`Drawing overlay duration set to ${sec}s${selectedTsId ? " (applied to selected timestamp)" : ""}.`);
+  };
+  $("dur5Btn")?.addEventListener("click", () => applyPreset(5));
+  $("dur10Btn")?.addEventListener("click", () => applyPreset(10));
+
+  // Set End time for selected timestamp to current playhead
+  $("setEndBtn")?.addEventListener("click", () => {
+    if (!selectedTsId || !player){ setStatus("Select a timestamp first."); return; }
+    const ts = state.timestamps.find(t => t.id === selectedTsId);
+    if (!ts) return;
+    const t = Math.floor(player.getCurrentTime?.() ?? 0);
+    if (t <= ts.time){
+      ts.endTime = null;
+      saveState();
+      setStatus("End cleared (end must be after start).");
+      return;
+    }
+    ts.endTime = t;
+    saveState();
+    setStatus(`End set to ${fmtTime(t)} for selected timestamp.`);
+  });
+
 
   const colorSel = $("colorSel");
   if (colorSel){
