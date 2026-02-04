@@ -122,6 +122,12 @@ let playerReady = false;
 let pendingVideoId = null;
 let selectedTsId = null;
 
+// Playback overlay behavior
+let overlayDurationPreset = 10; // seconds
+let overlayHideTimer = null;
+let overlayEndTimer = null;
+
+
 // telestration state
 let drawEnabled = false;
 let selectedColor = '#00E5FF';
@@ -364,6 +370,13 @@ function renderTimestampList(){
       }
     };
 
+    // v1.3.2: double-click a timestamp to play with timed overlay
+    div.ondblclick = (e) => {
+      e.preventDefault();
+      const cur = state.timestamps.find(t => t.id === ts.id);
+      if (cur) playTimestamp(cur);
+    };
+
     list.appendChild(div);
   }
 }
@@ -377,7 +390,9 @@ function addTimestampAtCurrent(){
     title: "New coaching point",
     description: "",
     taggedAthleteIds: [],
-    drawings: []
+    drawings: [],
+    overlayShowSec: overlayDurationPreset,
+    endTime: null
   };
   state.timestamps.push(ts);
   saveState();
@@ -394,6 +409,16 @@ function selectTimestamp(id){
   $("tsTitle").value = ts.title || "";
   $("tsDesc").value = ts.description || "";
   $("tsTimePill").textContent = fmtTime(ts.time);
+
+  // v1.3.2: defaults for new fields
+  if (typeof ts.overlayShowSec !== "number") ts.overlayShowSec = overlayDurationPreset;
+  if (typeof ts.endTime !== "number") ts.endTime = null;
+  const endP = $("tsEndPill");
+  if (endP) endP.textContent = ts.endTime!=null ? `End: ${fmtTime(ts.endTime)}` : "End: —";
+
+  // reveal overlay when selecting a timestamp
+  showOverlay();
+
 
   // drawings
   drawings = ts.drawings || [];
@@ -431,6 +456,31 @@ function deleteTimestamp(){
   saveState();
   renderTimestampList();
   setStatus("Deleted timestamp.");
+}
+
+function playTimestamp(ts){
+  if (!player || !ts) return;
+  // seek + play
+  player.seekTo(ts.time, true);
+  drawings = ts.drawings || [];
+  redrawAll();
+  showOverlay();
+  player.playVideo();
+
+  const dur = Math.max(0, Number(ts.overlayShowSec ?? overlayDurationPreset));
+  if (dur > 0){
+    overlayHideTimer = setTimeout(() => {
+      hideOverlay();
+    }, dur * 1000);
+  }
+
+  if (ts.endTime != null){
+    const end = Number(ts.endTime);
+    const ms = Math.max(0, (end - ts.time) * 1000);
+    overlayEndTimer = setTimeout(() => {
+      try { player.pauseVideo(); } catch(e){}
+    }, ms);
+  }
 }
 
 function jumpToSelected(){
@@ -565,6 +615,20 @@ function drawStroke(stroke){
   }
   ctx.stroke();
   ctx.restore();
+}
+
+function clearOverlayTimers(){
+  if (overlayHideTimer) { clearTimeout(overlayHideTimer); overlayHideTimer = null; }
+  if (overlayEndTimer) { clearTimeout(overlayEndTimer); overlayEndTimer = null; }
+}
+
+function showOverlay(){
+  clearOverlayTimers();
+  canvas.style.opacity = "1";
+}
+
+function hideOverlay(){
+  canvas.style.opacity = "0";
 }
 
 function redrawAll(){
@@ -844,6 +908,25 @@ function bindUI(){
 
   $("addTsBtn").onclick = addTimestampAtCurrent;
 
+  // v1.3.2: overlay duration presets
+  const setPreset = (sec) => {
+    overlayDurationPreset = sec;
+    const map = {5:"dur5Btn",10:"dur10Btn",20:"dur20Btn"};
+    Object.values(map).forEach(id => { const el = $(id); if (el) el.classList.remove("is-active"); });
+    const active = $(map[sec]); if (active) active.classList.add("is-active");
+    // apply to selected timestamp too (fast workflow)
+    if (selectedTsId){
+      const ts = state.timestamps.find(t => t.id === selectedTsId);
+      if (ts){ ts.overlayShowSec = sec; saveState(); setStatus(`Overlay duration set to ${sec}s.`); }
+    }
+  };
+  $("dur5Btn")?.addEventListener("click", () => setPreset(5));
+  $("dur10Btn")?.addEventListener("click", () => setPreset(10));
+  $("dur20Btn")?.addEventListener("click", () => setPreset(20));
+  // default active
+  setPreset(overlayDurationPreset);
+
+
   const colorSel = $("colorSel");
   if (colorSel){
     // Keep selectedColor in sync for both dropdown and swatches UI
@@ -890,6 +973,25 @@ function bindUI(){
   $("saveTsBtn").onclick = saveTimestampEdits;
   $("deleteTsBtn").onclick = deleteTimestamp;
   $("jumpTsBtn").onclick = jumpToSelected;
+  $("setEndBtn")?.addEventListener("click", () => {
+    if (!selectedTsId || !player) { setStatus("Select a timestamp first."); return; }
+    const ts = state.timestamps.find(t => t.id === selectedTsId);
+    if (!ts) return;
+    const t = Math.floor(player.getCurrentTime());
+    if (t <= ts.time){
+      ts.endTime = null;
+      const endP = $("tsEndPill");
+      if (endP) endP.textContent = "End: —";
+      saveState();
+      setStatus("End time cleared (end must be after start).");
+      return;
+    }
+    ts.endTime = t;
+    const endP = $("tsEndPill");
+    if (endP) endP.textContent = `End: ${fmtTime(t)}`;
+    saveState();
+    setStatus(`End time set to ${fmtTime(t)}.`);
+  });
 
   // filters + athlete search
   $("tsFilter").addEventListener("input", () => { renderTimestampList(); updateFilterX(); });
