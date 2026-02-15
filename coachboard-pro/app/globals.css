@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #0b0f14;
+  --color-card: #0f1620;
+  --color-border: #1b2633;
+  --color-muted: #9fb2c8;
+  --color-text: #e8eef6;
+  --color-pill: #111a24;
+  --color-input: #111a24;
+  --color-primary: #3457ff;
+  --color-primary-bg: #1b3bff22;
+  --color-primary-br: #3457ff55;
+  --color-danger: #ff4d4d;
+  --color-danger-br: #ff4d4d55;
+  --color-success: #22c55e;
+  --color-warning: #eab308;
+  --color-cyan: #00E5FF;
+  --color-swatch-red: #FF4D4D;
+  --color-swatch-yellow: #FFD166;
+  --color-swatch-green: #A3FF12;
+}
+
+* {
+  box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(159,178,200,0.35) rgba(0,0,0,0);
+}
+
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: rgba(159,178,200,0.25);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(159,178,200,0.45);
+  background-clip: content-box;
+}
+
+body {
+  @apply bg-bg text-text;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+/* YouTube iframe needs pointer-events:none so canvas overlay works */
+#yt-player iframe {
+  pointer-events: none;
+}

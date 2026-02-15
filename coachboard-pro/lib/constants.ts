@@ -1,0 +1,34 @@
+// Drawing colors
+export const DRAW_COLORS = [
+  { hex: "#00E5FF", name: "Cyan" },
+  { hex: "#FF4D4D", name: "Red" },
+  { hex: "#FFD166", name: "Yellow" },
+  { hex: "#A3FF12", name: "Green" },
+  { hex: "#FFFFFF", name: "White" },
+  { hex: "#FF69B4", name: "Pink" },
+  { hex: "#FFA500", name: "Orange" },
+  { hex: "#8B5CF6", name: "Purple" },
+] as const;
+
+// Free tier: only first 3 colors
+export const FREE_DRAW_COLORS = DRAW_COLORS.slice(0, 3);
+
+export const DRAW_SIZES = [2, 4, 8, 12] as const;
+
+export const DEFAULT_STEP_SECONDS = 5;
+export const DEFAULT_OVERLAY_DURATION = 10;
+
+// Free tier limits
+export const FREE_LIMITS = {
+  maxProjects: 3,
+  maxTeams: 1,
+  maxAthletes: 10,
+  drawColors: 3,
+  notifications: false,
+  shareLinks: false,
+  comments: false,
+  csvExport: false,
+} as const;
+
+// Debounce timing for auto-save (ms)
+export const AUTOSAVE_DEBOUNCE_MS = 1000;
