@@ -301,7 +301,7 @@ export default function ProjectPage({
 
           <div className="border-t border-border pt-2" />
 
-          <CommentThread timestampId={selectedTimestampId} />
+          <CommentThread timestampId={selectedTimestampId} isTeamMember={!!teamMember} />
         </Card>
       </div>
     </div>

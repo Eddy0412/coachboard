@@ -39,9 +39,11 @@ export function Sidebar() {
         <Link href="/dashboard" className="text-lg font-extrabold">
           Coachboard
         </Link>
-        <Badge variant={profile?.subscription_status === "pro" ? "primary" : "default"}>
-          {profile?.subscription_status === "pro" ? "Pro" : "Free"}
-        </Badge>
+        {!athleteUser && (
+          <Badge variant={profile?.subscription_status === "pro" ? "primary" : "default"}>
+            {profile?.subscription_status === "pro" ? "Pro" : "Free"}
+          </Badge>
+        )}
       </div>
 
       <nav className="flex flex-1 flex-col gap-1 p-3">

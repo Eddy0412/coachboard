@@ -13,14 +13,19 @@ import type { Comment, Profile } from "@/lib/supabase/types";
 
 interface CommentThreadProps {
   timestampId: string | null;
+  isTeamMember?: boolean;
 }
 
-export function CommentThread({ timestampId }: CommentThreadProps) {
+export function CommentThread({ timestampId, isTeamMember }: CommentThreadProps) {
   const [content, setContent] = useState("");
   const { user } = useAuth();
   const { canUseComments } = useSubscription();
   const supabase = createClient();
   const queryClient = useQueryClient();
+
+  // Invited team members (coaches) can always comment.
+  // Only free users who are NOT team members need Pro.
+  const canComment = canUseComments || !!isTeamMember;
 
   const { data: comments = [] } = useQuery({
     queryKey: ["comments", timestampId],
@@ -54,11 +59,11 @@ export function CommentThread({ timestampId }: CommentThreadProps) {
 
   if (!timestampId) return null;
 
-  if (!canUseComments) {
+  if (!canComment) {
     return (
       <div className="flex items-center gap-2 rounded-xl border border-border p-3 text-xs text-muted">
         <Lock className="h-3 w-3" />
-        Comments are a Pro feature.
+        Upgrade to Pro to use comments.
       </div>
     );
   }
