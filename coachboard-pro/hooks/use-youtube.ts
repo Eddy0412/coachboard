@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useCallback } from "react";
 import { useWorkspaceStore } from "@/stores/workspace";
 
 declare global {
@@ -37,19 +37,21 @@ function onAPIReady(cb: () => void) {
   }
 }
 
+// Shared player instances keyed by container ID
+const players: Record<string, YT.Player | null> = {};
+let timeInterval: ReturnType<typeof setInterval> | null = null;
+
 export function useYouTubePlayer(containerId: string) {
-  const playerRef = useRef<YT.Player | null>(null);
   const { setPlayerReady, setCurrentTime, setStatus } = useWorkspaceStore();
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const initPlayer = useCallback(
     (videoId?: string) => {
       onAPIReady(() => {
-        if (playerRef.current) {
-          playerRef.current.destroy();
+        if (players[containerId]) {
+          players[containerId]!.destroy();
         }
 
-        playerRef.current = new window.YT.Player(containerId, {
+        players[containerId] = new window.YT.Player(containerId, {
           height: "100%",
           width: "100%",
           videoId: videoId || undefined,
@@ -64,8 +66,10 @@ export function useYouTubePlayer(containerId: string) {
           },
           events: {
             onReady: () => {
+              // Mute by default so videos load silently
+              players[containerId]?.mute();
               setPlayerReady(true);
-              setStatus("Player ready.");
+              setStatus("Player ready. (muted)");
             },
             onError: (e: YT.OnErrorEvent) => {
               const code = e.data;
@@ -83,14 +87,12 @@ export function useYouTubePlayer(containerId: string) {
           },
         });
 
-        // Time tracking interval
-        if (intervalRef.current) clearInterval(intervalRef.current);
-        intervalRef.current = setInterval(() => {
-          if (
-            playerRef.current &&
-            typeof playerRef.current.getCurrentTime === "function"
-          ) {
-            setCurrentTime(playerRef.current.getCurrentTime());
+        // Time tracking interval (only one globally)
+        if (timeInterval) clearInterval(timeInterval);
+        timeInterval = setInterval(() => {
+          const p = players[containerId];
+          if (p && typeof p.getCurrentTime === "function") {
+            setCurrentTime(p.getCurrentTime());
           }
         }, 250);
       });
@@ -98,41 +100,56 @@ export function useYouTubePlayer(containerId: string) {
     [containerId, setPlayerReady, setCurrentTime, setStatus]
   );
 
-  const loadVideo = useCallback((videoId: string) => {
-    if (playerRef.current && typeof playerRef.current.cueVideoById === "function") {
-      playerRef.current.cueVideoById(videoId);
-    }
-  }, []);
+  const loadVideo = useCallback(
+    (videoId: string) => {
+      const p = players[containerId];
+      if (p && typeof p.cueVideoById === "function") {
+        p.cueVideoById(videoId);
+      }
+    },
+    [containerId]
+  );
 
-  const play = useCallback(() => playerRef.current?.playVideo(), []);
-  const pause = useCallback(() => playerRef.current?.pauseVideo(), []);
+  const play = useCallback(() => {
+    players[containerId]?.playVideo();
+  }, [containerId]);
 
-  const seekTo = useCallback((seconds: number) => {
-    playerRef.current?.seekTo(Math.max(0, seconds), true);
-  }, []);
+  const pause = useCallback(() => {
+    players[containerId]?.pauseVideo();
+  }, [containerId]);
+
+  const seekTo = useCallback(
+    (seconds: number) => {
+      players[containerId]?.seekTo(Math.max(0, seconds), true);
+    },
+    [containerId]
+  );
 
   const getCurrentTime = useCallback(
-    () => playerRef.current?.getCurrentTime() ?? 0,
-    []
+    () => players[containerId]?.getCurrentTime() ?? 0,
+    [containerId]
   );
 
   const toggleMute = useCallback(() => {
-    if (!playerRef.current) return;
-    if (playerRef.current.isMuted()) {
-      playerRef.current.unMute();
+    const p = players[containerId];
+    if (!p) return;
+    if (p.isMuted()) {
+      p.unMute();
     } else {
-      playerRef.current.mute();
+      p.mute();
     }
-  }, []);
+  }, [containerId]);
 
   useEffect(() => {
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (timeInterval) {
+        clearInterval(timeInterval);
+        timeInterval = null;
+      }
     };
   }, []);
 
   return {
-    playerRef,
     initPlayer,
     loadVideo,
     play,

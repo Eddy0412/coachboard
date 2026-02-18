@@ -4,11 +4,18 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Sparkles } from "lucide-react";
+import { Check, Sparkles, Crown } from "lucide-react";
+
+const FREE_FEATURES = [
+  "2 projects",
+  "1 team, 10 athletes",
+  "Basic telestration (3 colors)",
+  "All core video features",
+];
 
 const PRO_FEATURES = [
   "Unlimited projects",
-  "Unlimited teams & athletes",
+  "1 team, unlimited athletes",
   "Email & WhatsApp notifications",
   "Share links",
   "Comments & collaboration",
@@ -17,11 +24,12 @@ const PRO_FEATURES = [
   "Priority support",
 ];
 
-const FREE_FEATURES = [
-  "3 projects",
-  "1 team, 10 athletes",
-  "Basic telestration (3 colors)",
-  "All core video features",
+const ELITE_FEATURES = [
+  "Everything in Pro",
+  "Unlimited teams & athletes",
+  "Advanced analytics & reports",
+  "Practice Mode (local private videos)",
+  "Team usage insights",
 ];
 
 export function PricingCards() {
@@ -44,7 +52,7 @@ export function PricingCards() {
   };
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2">
+    <div className="grid gap-4 sm:grid-cols-3">
       {/* Free tier */}
       <Card className="flex flex-col gap-4 p-6">
         <div>
@@ -52,11 +60,12 @@ export function PricingCards() {
           <p className="text-2xl font-extrabold">
             $0<span className="text-sm font-normal text-muted">/month</span>
           </p>
+          <p className="text-xs text-muted">Get started at no cost</p>
         </div>
-        <ul className="flex flex-col gap-2">
+        <ul className="flex flex-1 flex-col gap-2">
           {FREE_FEATURES.map((f) => (
             <li key={f} className="flex items-center gap-2 text-sm text-muted">
-              <Check className="h-3 w-3 text-muted" />
+              <Check className="h-3 w-3 shrink-0 text-muted" />
               {f}
             </li>
           ))}
@@ -68,21 +77,23 @@ export function PricingCards() {
 
       {/* Pro tier */}
       <Card className="flex flex-col gap-4 border-primary-br p-6">
-        <div className="flex items-center gap-2">
-          <h3 className="text-lg font-bold">Pro</h3>
-          <Badge variant="primary">
-            <Sparkles className="mr-1 h-3 w-3" />
-            Recommended
-          </Badge>
+        <div>
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg font-bold">Pro</h3>
+            <Badge variant="primary">
+              <Sparkles className="mr-1 h-3 w-3" />
+              Recommended
+            </Badge>
+          </div>
+          <p className="text-2xl font-extrabold">
+            $24<span className="text-sm font-normal text-muted">/month</span>
+          </p>
+          <p className="text-xs text-muted">or $240/year (save 17%)</p>
         </div>
-        <p className="text-2xl font-extrabold">
-          $19<span className="text-sm font-normal text-muted">/month</span>
-        </p>
-        <p className="text-xs text-muted">or $190/year (save 17%)</p>
-        <ul className="flex flex-col gap-2">
+        <ul className="flex flex-1 flex-col gap-2">
           {PRO_FEATURES.map((f) => (
             <li key={f} className="flex items-center gap-2 text-sm">
-              <Check className="h-3 w-3 text-success" />
+              <Check className="h-3 w-3 shrink-0 text-success" />
               {f}
             </li>
           ))}
@@ -93,16 +104,44 @@ export function PricingCards() {
             onClick={() => handleUpgrade("monthly")}
             disabled={loading !== null}
           >
-            {loading === "monthly" ? "Redirecting..." : "Upgrade monthly"}
+            {loading === "monthly" ? "Redirecting..." : "Upgrade — $24/mo"}
           </Button>
           <Button
             variant="default"
             onClick={() => handleUpgrade("yearly")}
             disabled={loading !== null}
           >
-            {loading === "yearly" ? "Redirecting..." : "Upgrade yearly ($190/yr)"}
+            {loading === "yearly" ? "Redirecting..." : "Upgrade — $240/yr"}
           </Button>
         </div>
+      </Card>
+
+      {/* Elite tier */}
+      <Card className="relative flex flex-col gap-4 border-border p-6 opacity-80">
+        <div className="absolute right-4 top-4">
+          <Badge>Coming Soon</Badge>
+        </div>
+        <div>
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg font-bold">Elite</h3>
+            <Crown className="h-4 w-4 text-amber-500" />
+          </div>
+          <p className="text-2xl font-extrabold">
+            TBD
+          </p>
+          <p className="text-xs text-muted">For programs that need more</p>
+        </div>
+        <ul className="flex flex-1 flex-col gap-2">
+          {ELITE_FEATURES.map((f) => (
+            <li key={f} className="flex items-center gap-2 text-sm text-muted">
+              <Check className="h-3 w-3 shrink-0 text-muted" />
+              {f}
+            </li>
+          ))}
+        </ul>
+        <Button variant="default" disabled>
+          Coming Soon
+        </Button>
       </Card>
     </div>
   );

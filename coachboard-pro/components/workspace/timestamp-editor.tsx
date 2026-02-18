@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useWorkspaceStore } from "@/stores/workspace";
-import { useAutoSaveTimestamp, useDeleteTimestamp } from "@/hooks/use-timestamps";
+import { useAutoSaveTimestamp, useDeleteTimestamp, useUpdateTimestamp } from "@/hooks/use-timestamps";
 import { formatTime } from "@/lib/youtube";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, MapPin } from "lucide-react";
+import { Trash2, MapPin, Clock } from "lucide-react";
 import type { Timestamp } from "@/lib/supabase/types";
 
 interface TimestampEditorProps {
@@ -28,7 +28,8 @@ export function TimestampEditor({
   const [description, setDescription] = useState("");
   const autoSave = useAutoSaveTimestamp();
   const deleteTimestamp = useDeleteTimestamp();
-  const { setSelectedTimestamp } = useWorkspaceStore();
+  const updateTimestamp = useUpdateTimestamp();
+  const { currentTime, setSelectedTimestamp } = useWorkspaceStore();
 
   useEffect(() => {
     if (timestamp) {
@@ -93,6 +94,45 @@ export function TimestampEditor({
         disabled={!canEdit}
       />
 
+      {/* End time controls */}
+      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-input/50 p-2">
+        <Clock className="h-3.5 w-3.5 text-muted" />
+        <span className="text-xs text-muted">Start: {formatTime(timestamp.time_seconds)}</span>
+        <span className="text-xs text-muted">|</span>
+        <span className="text-xs text-muted">
+          End: {timestamp.end_time_seconds ? formatTime(timestamp.end_time_seconds) : "—"}
+        </span>
+        {canEdit && (
+          <>
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => {
+                const t = Math.floor(currentTime);
+                if (t >= timestamp.time_seconds) {
+                  updateTimestamp.mutate({ id: timestamp.id, end_time_seconds: t });
+                }
+              }}
+              title="Set end time to current playback position"
+            >
+              Set End
+            </Button>
+            {timestamp.end_time_seconds && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  updateTimestamp.mutate({ id: timestamp.id, end_time_seconds: null });
+                }}
+                title="Remove end time"
+              >
+                Clear
+              </Button>
+            )}
+          </>
+        )}
+      </div>
+
       <div className="flex flex-wrap gap-2">
         <Button
           variant="default"
@@ -100,8 +140,18 @@ export function TimestampEditor({
           onClick={() => onSeek(timestamp.time_seconds)}
         >
           <MapPin className="h-3 w-3" />
-          Jump
+          Jump to start
         </Button>
+        {timestamp.end_time_seconds && (
+          <Button
+            variant="default"
+            size="sm"
+            onClick={() => onSeek(timestamp.end_time_seconds!)}
+          >
+            <MapPin className="h-3 w-3" />
+            Jump to end
+          </Button>
+        )}
         {canEdit && (
           <Button
             variant="danger"

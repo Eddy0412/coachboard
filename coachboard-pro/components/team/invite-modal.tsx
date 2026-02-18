@@ -34,7 +34,9 @@ export function InviteModal({ teamId }: InviteModalProps) {
 
   const invite = useMutation({
     mutationFn: async () => {
-      const token = crypto.randomUUID().replace(/-/g, "").slice(0, 24);
+      const arr = new Uint8Array(16);
+      crypto.getRandomValues(arr);
+      const token = Array.from(arr, (b) => b.toString(16).padStart(2, "0")).join("").slice(0, 24);
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 7);
 
@@ -50,9 +52,12 @@ export function InviteModal({ teamId }: InviteModalProps) {
       });
       if (error) throw error;
 
+      let emailSent = false;
+      let whatsappSent = false;
+
       // Send invite email via API
       try {
-        await fetch("/api/notifications/email", {
+        const res = await fetch("/api/notifications/email", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -65,6 +70,7 @@ export function InviteModal({ teamId }: InviteModalProps) {
             },
           }),
         });
+        emailSent = res.ok;
       } catch {
         // Email sending is best-effort
       }
@@ -72,7 +78,7 @@ export function InviteModal({ teamId }: InviteModalProps) {
       // Send WhatsApp if phone provided
       if (phone) {
         try {
-          await fetch("/api/notifications/whatsapp", {
+          const res = await fetch("/api/notifications/whatsapp", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -81,22 +87,28 @@ export function InviteModal({ teamId }: InviteModalProps) {
               data: { token, role, teamId },
             }),
           });
+          whatsappSent = res.ok;
         } catch {
           // WhatsApp is best-effort
         }
       }
 
-      return token;
+      return { token, emailSent, whatsappSent };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["team-members", teamId] });
+      queryClient.invalidateQueries({ queryKey: ["invitations", teamId] });
       setOpen(false);
       setEmail("");
       setPhone("");
-      toast("Invitation sent!", "success");
+      if (result.emailSent) {
+        toast("Invitation created and email sent!", "success");
+      } else {
+        toast("Invitation created! Email could not be sent — share the invite link manually.", "success");
+      }
     },
-    onError: () => {
-      toast("Failed to send invitation.", "error");
+    onError: (err: Error) => {
+      toast(`Failed to send invitation: ${err.message}`, "error");
     },
   });
 

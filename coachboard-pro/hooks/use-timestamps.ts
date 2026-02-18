@@ -150,27 +150,53 @@ export function useToggleTimestampAthlete() {
       timestampId,
       athleteId,
       tagged,
+      projectId,
+      projectTitle,
+      timestampTitle,
+      taggedByName,
     }: {
       timestampId: string;
       athleteId: string;
       tagged: boolean;
+      projectId?: string;
+      projectTitle?: string;
+      timestampTitle?: string;
+      taggedByName?: string;
     }) => {
       if (tagged) {
+        // Untagging — just delete
         await supabase
           .from("timestamp_athletes")
           .delete()
           .eq("timestamp_id", timestampId)
           .eq("athlete_id", athleteId);
       } else {
+        // Tagging — insert + notify
         await supabase
           .from("timestamp_athletes")
           .insert({ timestamp_id: timestampId, athlete_id: athleteId });
+
+        // Fire notification (best effort, non-blocking)
+        fetch("/api/notifications/athlete-tagged", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            athleteId,
+            timestampTitle: timestampTitle || "a coaching point",
+            projectTitle: projectTitle || "a project",
+            projectId: projectId || "",
+            taggedByName: taggedByName || "Your coach",
+          }),
+        }).catch(() => { /* best effort */ });
       }
       return timestampId;
     },
     onSuccess: (timestampId) => {
       queryClient.invalidateQueries({
         queryKey: ["timestamp_athletes", timestampId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["all-timestamp-athletes"],
       });
     },
   });

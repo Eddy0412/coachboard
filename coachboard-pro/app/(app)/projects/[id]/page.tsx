@@ -1,7 +1,8 @@
 "use client";
 
-import { use, useEffect, useMemo } from "react";
+import React, { use, useEffect, useMemo } from "react";
 import { useProject } from "@/hooks/use-project";
+import { formatTime } from "@/lib/youtube";
 import {
   useTimestamps,
   useCreateTimestamp,
@@ -39,7 +40,7 @@ export default function ProjectPage({
   const { id } = use(params);
   const { user, profile } = useAuth();
   const supabase = createClient();
-  const { selectedTimestampId, setSelectedTimestamp, setStatus } =
+  const { selectedTimestampId, setSelectedTimestamp, setStatus, currentTime, setOverlayVisible } =
     useWorkspaceStore();
   const { getCurrentTime, seekTo } = useYouTubePlayer("yt-player");
 
@@ -122,6 +123,22 @@ export default function ProjectPage({
     return map;
   }, [allTimestampAthletes]);
 
+  // Find the logged-in user's athlete record (if they are an athlete)
+  const athleteRole = isAthlete(profile);
+  const myAthleteRecord = useMemo(() => {
+    if (!athleteRole || !user) return null;
+    return athletes.find((a) => a.user_id === user.id) ?? null;
+  }, [athleteRole, athletes, user]);
+
+  // Athletes only see timestamps where they are tagged
+  const visibleTimestamps = useMemo(() => {
+    if (!athleteRole || !myAthleteRecord) return timestamps;
+    return timestamps.filter((ts) => {
+      const taggedIds = timestampAthletesMap[ts.id] || [];
+      return taggedIds.includes(myAthleteRecord.id);
+    });
+  }, [athleteRole, myAthleteRecord, timestamps, timestampAthletesMap]);
+
   // Get tagged athletes for selected timestamp
   const { data: selectedTimestampAthletes = [] } = useQuery({
     queryKey: ["timestamp_athletes", selectedTimestampId],
@@ -139,6 +156,37 @@ export default function ProjectPage({
 
   const selectedTimestamp =
     timestamps.find((t) => t.id === selectedTimestampId) ?? null;
+
+  // Auto-show/hide overlay and auto-pause at end time
+  const { pause } = useYouTubePlayer("yt-player");
+  const autoPausedRef = React.useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!selectedTimestamp) {
+      setOverlayVisible(false);
+      return;
+    }
+    const start = selectedTimestamp.time_seconds;
+    const duration = selectedTimestamp.overlay_show_sec ?? 5;
+    // Overlay (drawing) visibility is always based on overlay_show_sec
+    const overlayEnd = start + duration;
+    const visible = currentTime >= start && currentTime <= overlayEnd;
+    setOverlayVisible(visible);
+
+    // Auto-pause when reaching end time (once per timestamp selection)
+    if (selectedTimestamp.end_time_seconds && currentTime >= selectedTimestamp.end_time_seconds) {
+      if (autoPausedRef.current !== selectedTimestamp.id) {
+        autoPausedRef.current = selectedTimestamp.id;
+        pause();
+        setStatus(`Auto-paused at ${formatTime(selectedTimestamp.end_time_seconds)}`);
+      }
+    } else {
+      // Reset auto-pause flag when before end time (allows re-pause on replay)
+      if (autoPausedRef.current === selectedTimestamp.id && currentTime < start) {
+        autoPausedRef.current = null;
+      }
+    }
+  }, [currentTime, selectedTimestamp, setOverlayVisible, pause, setStatus]);
 
   const handleAddTimestamp = async () => {
     const time = Math.floor(getCurrentTime());
@@ -203,7 +251,7 @@ export default function ProjectPage({
           <div className="border-t border-border pt-2" />
           <div className="flex-1 overflow-auto">
             <TimestampList
-              timestamps={timestamps}
+              timestamps={visibleTimestamps}
               athletes={athletes}
               timestampAthletes={timestampAthletesMap}
               onSelect={(tsId) => setSelectedTimestamp(tsId)}
@@ -245,6 +293,10 @@ export default function ProjectPage({
             athletes={athletes}
             taggedAthleteIds={selectedTimestampAthletes}
             canEdit={canEdit}
+            projectId={id}
+            projectTitle={project?.title}
+            timestampTitle={selectedTimestamp?.title}
+            taggedByName={profile?.full_name || user?.email || "Your coach"}
           />
 
           <div className="border-t border-border pt-2" />

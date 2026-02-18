@@ -1,20 +1,29 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useProjects } from "@/hooks/use-project";
 import { useSubscription } from "@/hooks/use-subscription";
-import { ProjectCard } from "@/components/dashboard/project-card";
+import { ProjectCard, ProjectListItem } from "@/components/dashboard/project-card";
 import { UpgradeBanner } from "@/components/dashboard/upgrade-banner";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Lock, LayoutGrid, List } from "lucide-react";
 import { isAthlete } from "@/lib/permissions";
 import { useAuth } from "@/components/auth/auth-provider";
+import { useToast } from "@/components/ui/toast";
+import { FREE_LIMITS } from "@/lib/constants";
 
 export default function DashboardPage() {
+  const [view, setView] = useState<"panel" | "list">("panel");
   const { data: projects, isLoading } = useProjects();
-  const { canCreateProject } = useSubscription();
+  const { canCreateProject, isPro } = useSubscription();
   const { profile } = useAuth();
+  const { toast } = useToast();
+  const router = useRouter();
   const athleteUser = isAthlete(profile);
+  const projectCount = projects?.length ?? 0;
+  const atLimit = !canCreateProject(projectCount);
 
   return (
     <div className="flex flex-col gap-6">
@@ -29,30 +38,79 @@ export default function DashboardPage() {
               : "Your coaching projects"}
           </p>
         </div>
-        {!athleteUser && (
-          <Link href="/projects/new">
-            <Button
-              variant="primary"
-              disabled={!canCreateProject(projects?.length ?? 0)}
+        <div className="flex items-center gap-2">
+          {!athleteUser && (
+            atLimit ? (
+              <Button
+                variant="default"
+                onClick={() => {
+                  toast(`Free plan is limited to ${FREE_LIMITS.maxProjects} projects. Upgrade to Pro for unlimited.`, "error");
+                  router.push("/settings/billing");
+                }}
+              >
+                <Lock className="h-4 w-4" />
+                New project (limit reached)
+              </Button>
+            ) : (
+              <Link href="/projects/new">
+                <Button variant="primary">
+                  <Plus className="h-4 w-4" />
+                  New project
+                </Button>
+              </Link>
+            )
+          )}
+          <div className="flex rounded-lg border border-border">
+            <button
+              type="button"
+              onClick={() => setView("panel")}
+              className={`flex items-center justify-center rounded-l-lg p-2 transition-colors ${
+                view === "panel"
+                  ? "bg-primary-bg text-text"
+                  : "text-muted hover:text-text"
+              }`}
+              title="Grid view"
             >
-              <Plus className="h-4 w-4" />
-              New project
-            </Button>
-          </Link>
-        )}
+              <LayoutGrid className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setView("list")}
+              className={`flex items-center justify-center rounded-r-lg p-2 transition-colors ${
+                view === "list"
+                  ? "bg-primary-bg text-text"
+                  : "text-muted hover:text-text"
+              }`}
+              title="List view"
+            >
+              <List className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
       </div>
 
       <UpgradeBanner />
 
       {isLoading ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className="aspect-[4/3] animate-pulse rounded-2xl bg-card"
-            />
-          ))}
-        </div>
+        view === "panel" ? (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="aspect-[4/3] animate-pulse rounded-2xl bg-card"
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="h-20 animate-pulse rounded-xl bg-card"
+              />
+            ))}
+          </div>
+        )
       ) : !projects?.length ? (
         <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-border bg-card py-16">
           <p className="text-muted">
@@ -69,10 +127,16 @@ export default function DashboardPage() {
             </Link>
           )}
         </div>
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      ) : view === "panel" ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {projects.map((project) => (
             <ProjectCard key={project.id} project={project} />
+          ))}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {projects.map((project) => (
+            <ProjectListItem key={project.id} project={project} />
           ))}
         </div>
       )}

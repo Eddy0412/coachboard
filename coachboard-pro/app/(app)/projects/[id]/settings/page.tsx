@@ -13,7 +13,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Copy, Trash2, Link as LinkIcon, Lock } from "lucide-react";
+import { ArrowLeft, Copy, Trash2, Link as LinkIcon, Lock } from "lucide-react";
+import Link from "next/link";
+import { copyToClipboard } from "@/lib/utils";
 import type { ShareLink, ProjectAccess, Profile } from "@/lib/supabase/types";
 
 export default function ProjectSettingsPage({
@@ -58,7 +60,9 @@ export default function ProjectSettingsPage({
 
   const createShareLink = useMutation({
     mutationFn: async () => {
-      const token = crypto.randomUUID().replace(/-/g, "").slice(0, 24);
+      const arr = new Uint8Array(16);
+      crypto.getRandomValues(arr);
+      const token = Array.from(arr, (b) => b.toString(16).padStart(2, "0")).join("").slice(0, 24);
       const { data, error } = await supabase
         .from("share_links")
         .insert({
@@ -75,6 +79,9 @@ export default function ProjectSettingsPage({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["share-links", id] });
       toast("Share link created!", "success");
+    },
+    onError: () => {
+      toast("Failed to create share link. Make sure you have admin access.", "error");
     },
   });
 
@@ -97,6 +104,7 @@ export default function ProjectSettingsPage({
     if (!project) return;
     await updateProject.mutateAsync({ id: project.id, title, description });
     toast("Project updated!", "success");
+    router.push(`/projects/${id}`);
   };
 
   const handleDelete = async () => {
@@ -115,7 +123,15 @@ export default function ProjectSettingsPage({
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
-      <h1 className="text-2xl font-extrabold">Project Settings</h1>
+      <div className="flex items-center gap-4">
+        <Link href={`/projects/${id}`}>
+          <Button variant="ghost" size="sm">
+            <ArrowLeft className="h-4 w-4" />
+            Back to project
+          </Button>
+        </Link>
+        <h1 className="text-2xl font-extrabold">Project Settings</h1>
+      </div>
 
       {/* Basic info */}
       <Card className="flex flex-col gap-4 p-6">
@@ -174,10 +190,8 @@ export default function ProjectSettingsPage({
                   variant="ghost"
                   size="sm"
                   onClick={() => {
-                    navigator.clipboard.writeText(
-                      `${appUrl}/shared/${link.token}`
-                    );
-                    toast("Link copied!", "success");
+                    const ok = copyToClipboard(`${appUrl}/shared/${link.token}`);
+                    toast(ok ? "Link copied!" : "Could not copy — copy the link manually.", ok ? "success" : "error");
                   }}
                 >
                   <Copy className="h-3 w-3" />

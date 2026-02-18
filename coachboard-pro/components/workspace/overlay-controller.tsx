@@ -3,7 +3,6 @@
 import { useWorkspaceStore } from "@/stores/workspace";
 import { Button } from "@/components/ui/button";
 import { useUpdateTimestamp } from "@/hooks/use-timestamps";
-import { useYouTubePlayer } from "@/hooks/use-youtube";
 import type { Timestamp } from "@/lib/supabase/types";
 
 interface OverlayControllerProps {
@@ -13,8 +12,7 @@ interface OverlayControllerProps {
 
 export function OverlayController({ timestamp, canEdit }: OverlayControllerProps) {
   const updateTimestamp = useUpdateTimestamp();
-  const { getCurrentTime } = useYouTubePlayer("yt-player");
-  const { setStatus } = useWorkspaceStore();
+  const { currentTime, setStatus } = useWorkspaceStore();
 
   if (!timestamp || !canEdit) return null;
 
@@ -27,7 +25,7 @@ export function OverlayController({ timestamp, canEdit }: OverlayControllerProps
   };
 
   const setEndTime = () => {
-    const t = Math.floor(getCurrentTime());
+    const t = Math.floor(currentTime);
     if (t <= timestamp.time_seconds) {
       updateTimestamp.mutate({ id: timestamp.id, end_time_seconds: null });
       setStatus("End cleared (must be after start).");

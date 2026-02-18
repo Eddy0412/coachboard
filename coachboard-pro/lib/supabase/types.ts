@@ -36,6 +36,8 @@ export interface TeamMember {
   created_at: string;
 }
 
+export type ProjectCategory = "game" | "practice";
+
 export interface Project {
   id: string;
   team_id: string;
@@ -43,6 +45,7 @@ export interface Project {
   description: string | null;
   youtube_url: string;
   youtube_id: string;
+  category: ProjectCategory;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -64,6 +67,7 @@ export interface Athlete {
   last_name: string;
   position: string;
   jersey_number: string;
+  user_id: string | null;
   created_by: string;
   created_at: string;
   updated_at: string;

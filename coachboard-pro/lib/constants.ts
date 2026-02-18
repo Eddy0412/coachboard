@@ -20,7 +20,7 @@ export const DEFAULT_OVERLAY_DURATION = 10;
 
 // Free tier limits
 export const FREE_LIMITS = {
-  maxProjects: 3,
+  maxProjects: 2,
   maxTeams: 1,
   maxAthletes: 10,
   drawColors: 3,
@@ -28,6 +28,12 @@ export const FREE_LIMITS = {
   shareLinks: false,
   comments: false,
   csvExport: false,
+} as const;
+
+// Pro tier limits
+export const PRO_LIMITS = {
+  maxTeams: 1,
+  maxAthletes: Infinity,
 } as const;
 
 // Debounce timing for auto-save (ms)

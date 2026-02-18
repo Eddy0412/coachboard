@@ -12,6 +12,10 @@ interface AthleteTaggingProps {
   athletes: Athlete[];
   taggedAthleteIds: string[];
   canEdit: boolean;
+  projectId?: string;
+  projectTitle?: string;
+  timestampTitle?: string;
+  taggedByName?: string;
 }
 
 export function AthleteTagging({
@@ -19,6 +23,10 @@ export function AthleteTagging({
   athletes,
   taggedAthleteIds,
   canEdit,
+  projectId,
+  projectTitle,
+  timestampTitle,
+  taggedByName,
 }: AthleteTaggingProps) {
   const [search, setSearch] = useState("");
   const toggleTag = useToggleTimestampAthlete();
@@ -47,6 +55,18 @@ export function AthleteTagging({
     );
   }
 
+  const handleToggle = (athleteId: string, isTagged: boolean) => {
+    toggleTag.mutate({
+      timestampId: timestampId!,
+      athleteId,
+      tagged: isTagged,
+      projectId,
+      projectTitle,
+      timestampTitle,
+      taggedByName,
+    });
+  };
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
@@ -64,13 +84,7 @@ export function AthleteTagging({
                 key={id}
                 className={canEdit ? "cursor-pointer" : ""}
                 onClick={() => {
-                  if (canEdit && timestampId) {
-                    toggleTag.mutate({
-                      timestampId,
-                      athleteId: id,
-                      tagged: true,
-                    });
-                  }
+                  if (canEdit) handleToggle(id, true);
                 }}
                 title={canEdit ? "Click to remove" : undefined}
               >
@@ -115,13 +129,7 @@ export function AthleteTagging({
                     <Button
                       variant={isTagged ? "default" : "primary"}
                       size="sm"
-                      onClick={() => {
-                        toggleTag.mutate({
-                          timestampId: timestampId!,
-                          athleteId: a.id,
-                          tagged: isTagged,
-                        });
-                      }}
+                      onClick={() => handleToggle(a.id, isTagged)}
                     >
                       {isTagged ? "Tagged" : "Tag"}
                     </Button>

@@ -1,18 +1,98 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { useRoster, useCreateAthlete, useDeleteAthlete, useBulkCreateAthletes } from "@/hooks/use-roster";
+import { useRoster, useCreateAthlete, useUpdateAthlete, useDeleteAthlete, useBulkCreateAthletes } from "@/hooks/use-roster";
 import { useSubscription } from "@/hooks/use-subscription";
 import { useToast } from "@/components/ui/toast";
 import { toCSV, fromCSV } from "@/lib/csv";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Plus, Download, Upload, Trash2, Search } from "lucide-react";
+import { Plus, Download, Upload, Trash2, Search, Pencil, Check, X } from "lucide-react";
 import type { Athlete } from "@/lib/supabase/types";
 
 interface RosterTableProps {
   teamId: string;
   canEdit: boolean;
+}
+
+function EditableRow({
+  athlete,
+  teamId,
+  onDone,
+}: {
+  athlete: Athlete;
+  teamId: string;
+  onDone: () => void;
+}) {
+  const updateAthlete = useUpdateAthlete();
+  const { toast } = useToast();
+  const [firstName, setFirstName] = useState(athlete.first_name);
+  const [lastName, setLastName] = useState(athlete.last_name);
+  const [position, setPosition] = useState(athlete.position);
+  const [jersey, setJersey] = useState(athlete.jersey_number);
+
+  const handleSave = async () => {
+    await updateAthlete.mutateAsync({
+      id: athlete.id,
+      teamId,
+      first_name: firstName,
+      last_name: lastName,
+      position,
+      jersey_number: jersey,
+    });
+    toast("Athlete updated!", "success");
+    onDone();
+  };
+
+  return (
+    <tr className="border-b border-border last:border-b-0">
+      <td className="px-2 py-1.5">
+        <Input
+          value={firstName}
+          onChange={(e) => setFirstName(e.target.value)}
+          className="h-8 text-sm"
+        />
+      </td>
+      <td className="px-2 py-1.5">
+        <Input
+          value={lastName}
+          onChange={(e) => setLastName(e.target.value)}
+          className="h-8 text-sm"
+        />
+      </td>
+      <td className="px-2 py-1.5">
+        <Input
+          value={position}
+          onChange={(e) => setPosition(e.target.value)}
+          className="h-8 text-sm"
+          placeholder="QB, WR..."
+        />
+      </td>
+      <td className="px-2 py-1.5">
+        <Input
+          value={jersey}
+          onChange={(e) => setJersey(e.target.value)}
+          className="h-8 text-sm"
+          placeholder="#"
+        />
+      </td>
+      <td className="px-2 py-1.5 text-right">
+        <div className="flex items-center justify-end gap-1">
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={handleSave}
+            disabled={updateAthlete.isPending}
+          >
+            <Check className="h-3 w-3" />
+          </Button>
+          <Button variant="ghost" size="sm" onClick={onDone}>
+            <X className="h-3 w-3" />
+          </Button>
+        </div>
+      </td>
+    </tr>
+  );
 }
 
 export function RosterTable({ teamId, canEdit }: RosterTableProps) {
@@ -29,6 +109,7 @@ export function RosterTable({ teamId, canEdit }: RosterTableProps) {
   const [lastName, setLastName] = useState("");
   const [position, setPosition] = useState("");
   const [jersey, setJersey] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const norm = (s: string) => s.toLowerCase().trim();
   const filtered = athletes.filter((a) => {
@@ -226,30 +307,50 @@ export function RosterTable({ teamId, canEdit }: RosterTableProps) {
                 </td>
               </tr>
             ) : (
-              filtered.map((a) => (
-                <tr key={a.id} className="border-b border-border last:border-b-0">
-                  <td className="px-3 py-2.5">{a.first_name}</td>
-                  <td className="px-3 py-2.5">{a.last_name}</td>
-                  <td className="px-3 py-2.5">{a.position}</td>
-                  <td className="px-3 py-2.5">{a.jersey_number}</td>
-                  {canEdit && (
-                    <td className="px-3 py-2.5 text-right">
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        onClick={() =>
-                          deleteAthlete.mutate({
-                            id: a.id,
-                            teamId,
-                          })
-                        }
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </td>
-                  )}
-                </tr>
-              ))
+              filtered.map((a) =>
+                editingId === a.id ? (
+                  <EditableRow
+                    key={a.id}
+                    athlete={a}
+                    teamId={teamId}
+                    onDone={() => setEditingId(null)}
+                  />
+                ) : (
+                  <tr key={a.id} className="border-b border-border last:border-b-0">
+                    <td className="px-3 py-2.5">{a.first_name}</td>
+                    <td className="px-3 py-2.5">{a.last_name}</td>
+                    <td className="px-3 py-2.5">{a.position || <span className="text-muted">—</span>}</td>
+                    <td className="px-3 py-2.5">{a.jersey_number || <span className="text-muted">—</span>}</td>
+                    {canEdit && (
+                      <td className="px-3 py-2.5 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setEditingId(a.id)}
+                            title="Edit athlete"
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            variant="danger"
+                            size="sm"
+                            onClick={() =>
+                              deleteAthlete.mutate({
+                                id: a.id,
+                                teamId,
+                              })
+                            }
+                            title="Delete athlete"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </td>
+                    )}
+                  </tr>
+                )
+              )
             )}
           </tbody>
         </table>

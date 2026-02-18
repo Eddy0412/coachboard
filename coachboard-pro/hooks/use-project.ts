@@ -87,6 +87,7 @@ export function useCreateProject() {
       youtube_url: string;
       youtube_id: string;
       team_id: string;
+      category?: string;
     }) => {
       const { data: project, error } = await supabase
         .from("projects")
@@ -99,12 +100,13 @@ export function useCreateProject() {
       if (error) throw error;
 
       // Give creator admin access
-      await supabase.from("project_access").insert({
+      const { error: accessErr } = await supabase.from("project_access").insert({
         project_id: project.id,
         user_id: user!.id,
         permission: "admin",
         granted_by: user!.id,
       });
+      if (accessErr) console.warn("Could not create project_access:", accessErr);
 
       return project as Project;
     },

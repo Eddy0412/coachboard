@@ -1,5 +1,7 @@
 -- Coachboard Pro - Row Level Security Policies
 -- All tables use RLS. This file defines the policies.
+-- Uses SECURITY DEFINER helper functions to avoid infinite recursion
+-- when policies reference team_members table.
 
 -- =========================
 -- Enable RLS on all tables
@@ -17,6 +19,86 @@ ALTER TABLE comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE share_links ENABLE ROW LEVEL SECURITY;
 ALTER TABLE invitations ENABLE ROW LEVEL SECURITY;
+
+-- =========================
+-- SECURITY DEFINER helpers
+-- =========================
+-- These functions bypass RLS to check team membership, preventing
+-- infinite recursion when RLS policies need to query team_members.
+
+CREATE OR REPLACE FUNCTION public.get_my_team_ids()
+RETURNS SETOF uuid
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+SET search_path = public
+AS $$
+  SELECT team_id FROM team_members
+  WHERE user_id = auth.uid()
+  AND status = 'accepted';
+$$;
+
+CREATE OR REPLACE FUNCTION public.is_team_member(p_team_id uuid)
+RETURNS boolean
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM team_members
+    WHERE team_id = p_team_id
+    AND user_id = auth.uid()
+    AND status = 'accepted'
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION public.is_team_coach(p_team_id uuid)
+RETURNS boolean
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM team_members
+    WHERE team_id = p_team_id
+    AND user_id = auth.uid()
+    AND role IN ('head_coach', 'coach')
+    AND status = 'accepted'
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION public.is_team_head_coach(p_team_id uuid)
+RETURNS boolean
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM team_members
+    WHERE team_id = p_team_id
+    AND user_id = auth.uid()
+    AND role = 'head_coach'
+    AND status = 'accepted'
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION public.is_project_admin(p_project_id uuid)
+RETURNS boolean
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM project_access
+    WHERE project_id = p_project_id
+    AND user_id = auth.uid()
+    AND permission = 'admin'
+  );
+$$;
 
 -- =========================
 -- PROFILES
@@ -37,17 +119,13 @@ CREATE POLICY "Users can update own profile"
 -- =========================
 -- TEAMS
 -- =========================
--- Team members can read their team
+-- Team members can read their team (+ creators can see teams they just created)
 CREATE POLICY "Team members can view their teams"
   ON teams FOR SELECT
   TO authenticated
   USING (
-    EXISTS (
-      SELECT 1 FROM team_members
-      WHERE team_members.team_id = teams.id
-        AND team_members.user_id = auth.uid()
-        AND team_members.status = 'accepted'
-    )
+    teams.id IN (SELECT public.get_my_team_ids())
+    OR teams.created_by = auth.uid()
   );
 
 -- Authenticated users can create teams
@@ -61,12 +139,7 @@ CREATE POLICY "Head coach can update team"
   ON teams FOR UPDATE
   TO authenticated
   USING (
-    EXISTS (
-      SELECT 1 FROM team_members
-      WHERE team_members.team_id = teams.id
-        AND team_members.user_id = auth.uid()
-        AND team_members.role = 'head_coach'
-    )
+    public.is_team_head_coach(teams.id)
   );
 
 -- =========================
@@ -77,26 +150,15 @@ CREATE POLICY "Team members can view their team members"
   ON team_members FOR SELECT
   TO authenticated
   USING (
-    EXISTS (
-      SELECT 1 FROM team_members AS tm
-      WHERE tm.team_id = team_members.team_id
-        AND tm.user_id = auth.uid()
-        AND tm.status = 'accepted'
-    )
+    team_members.team_id IN (SELECT public.get_my_team_ids())
   );
 
--- Head coach / coaches can insert team members
+-- Head coach / coaches can insert team members, or user can self-insert
 CREATE POLICY "Coaches can invite team members"
   ON team_members FOR INSERT
   TO authenticated
   WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM team_members AS tm
-      WHERE tm.team_id = team_members.team_id
-        AND tm.user_id = auth.uid()
-        AND tm.role IN ('head_coach', 'coach')
-        AND tm.status = 'accepted'
-    )
+    public.is_team_coach(team_members.team_id)
     OR team_members.user_id = auth.uid() -- allow self-insert when creating team
   );
 
@@ -105,12 +167,7 @@ CREATE POLICY "Head coach can remove team members"
   ON team_members FOR DELETE
   TO authenticated
   USING (
-    EXISTS (
-      SELECT 1 FROM team_members AS tm
-      WHERE tm.team_id = team_members.team_id
-        AND tm.user_id = auth.uid()
-        AND tm.role = 'head_coach'
-    )
+    public.is_team_head_coach(team_members.team_id)
   );
 
 -- Members can update their own status (accept/decline)
@@ -129,12 +186,7 @@ CREATE POLICY "Users can view accessible projects"
   TO authenticated
   USING (
     created_by = auth.uid()
-    OR EXISTS (
-      SELECT 1 FROM team_members
-      WHERE team_members.team_id = projects.team_id
-        AND team_members.user_id = auth.uid()
-        AND team_members.status = 'accepted'
-    )
+    OR projects.team_id IN (SELECT public.get_my_team_ids())
     OR EXISTS (
       SELECT 1 FROM project_access
       WHERE project_access.project_id = projects.id
@@ -148,13 +200,7 @@ CREATE POLICY "Coaches can create projects"
   TO authenticated
   WITH CHECK (
     created_by = auth.uid()
-    AND EXISTS (
-      SELECT 1 FROM team_members
-      WHERE team_members.team_id = projects.team_id
-        AND team_members.user_id = auth.uid()
-        AND team_members.role IN ('head_coach', 'coach')
-        AND team_members.status = 'accepted'
-    )
+    AND public.is_team_coach(projects.team_id)
   );
 
 -- Users with write/admin access can update projects
@@ -169,13 +215,7 @@ CREATE POLICY "Editors can update projects"
         AND project_access.user_id = auth.uid()
         AND project_access.permission IN ('admin', 'write')
     )
-    OR EXISTS (
-      SELECT 1 FROM team_members
-      WHERE team_members.team_id = projects.team_id
-        AND team_members.user_id = auth.uid()
-        AND team_members.role IN ('head_coach', 'coach')
-        AND team_members.status = 'accepted'
-    )
+    OR public.is_team_coach(projects.team_id)
   );
 
 -- Admin / head_coach can delete projects
@@ -200,12 +240,7 @@ CREATE POLICY "Users can view their own project access"
   TO authenticated
   USING (
     user_id = auth.uid()
-    OR EXISTS (
-      SELECT 1 FROM project_access AS pa
-      WHERE pa.project_id = project_access.project_id
-        AND pa.user_id = auth.uid()
-        AND pa.permission = 'admin'
-    )
+    OR public.is_project_admin(project_access.project_id)
   );
 
 CREATE POLICY "Project admins can manage access"
@@ -214,12 +249,7 @@ CREATE POLICY "Project admins can manage access"
   WITH CHECK (
     granted_by = auth.uid()
     AND (
-      EXISTS (
-        SELECT 1 FROM project_access AS pa
-        WHERE pa.project_id = project_access.project_id
-          AND pa.user_id = auth.uid()
-          AND pa.permission = 'admin'
-      )
+      public.is_project_admin(project_access.project_id)
       OR EXISTS (
         SELECT 1 FROM projects
         WHERE projects.id = project_access.project_id
@@ -232,12 +262,7 @@ CREATE POLICY "Project admins can delete access"
   ON project_access FOR DELETE
   TO authenticated
   USING (
-    EXISTS (
-      SELECT 1 FROM project_access AS pa
-      WHERE pa.project_id = project_access.project_id
-        AND pa.user_id = auth.uid()
-        AND pa.permission = 'admin'
-    )
+    public.is_project_admin(project_access.project_id)
   );
 
 -- =========================
@@ -248,12 +273,7 @@ CREATE POLICY "Team members can view athletes"
   ON athletes FOR SELECT
   TO authenticated
   USING (
-    EXISTS (
-      SELECT 1 FROM team_members
-      WHERE team_members.team_id = athletes.team_id
-        AND team_members.user_id = auth.uid()
-        AND team_members.status = 'accepted'
-    )
+    athletes.team_id IN (SELECT public.get_my_team_ids())
   );
 
 -- Coaches can manage athletes
@@ -262,39 +282,21 @@ CREATE POLICY "Coaches can create athletes"
   TO authenticated
   WITH CHECK (
     created_by = auth.uid()
-    AND EXISTS (
-      SELECT 1 FROM team_members
-      WHERE team_members.team_id = athletes.team_id
-        AND team_members.user_id = auth.uid()
-        AND team_members.role IN ('head_coach', 'coach')
-        AND team_members.status = 'accepted'
-    )
+    AND public.is_team_coach(athletes.team_id)
   );
 
 CREATE POLICY "Coaches can update athletes"
   ON athletes FOR UPDATE
   TO authenticated
   USING (
-    EXISTS (
-      SELECT 1 FROM team_members
-      WHERE team_members.team_id = athletes.team_id
-        AND team_members.user_id = auth.uid()
-        AND team_members.role IN ('head_coach', 'coach')
-        AND team_members.status = 'accepted'
-    )
+    public.is_team_coach(athletes.team_id)
   );
 
 CREATE POLICY "Coaches can delete athletes"
   ON athletes FOR DELETE
   TO authenticated
   USING (
-    EXISTS (
-      SELECT 1 FROM team_members
-      WHERE team_members.team_id = athletes.team_id
-        AND team_members.user_id = auth.uid()
-        AND team_members.role IN ('head_coach', 'coach')
-        AND team_members.status = 'accepted'
-    )
+    public.is_team_coach(athletes.team_id)
   );
 
 -- =========================
@@ -309,12 +311,7 @@ CREATE POLICY "Users with project access can view timestamps"
       WHERE projects.id = timestamps.project_id
         AND (
           projects.created_by = auth.uid()
-          OR EXISTS (
-            SELECT 1 FROM team_members
-            WHERE team_members.team_id = projects.team_id
-              AND team_members.user_id = auth.uid()
-              AND team_members.status = 'accepted'
-          )
+          OR projects.team_id IN (SELECT public.get_my_team_ids())
           OR EXISTS (
             SELECT 1 FROM project_access
             WHERE project_access.project_id = projects.id
@@ -340,13 +337,7 @@ CREATE POLICY "Editors can create timestamps"
               AND project_access.user_id = auth.uid()
               AND project_access.permission IN ('admin', 'write')
           )
-          OR EXISTS (
-            SELECT 1 FROM team_members
-            WHERE team_members.team_id = projects.team_id
-              AND team_members.user_id = auth.uid()
-              AND team_members.role IN ('head_coach', 'coach')
-              AND team_members.status = 'accepted'
-          )
+          OR public.is_team_coach(projects.team_id)
         )
     )
   );
@@ -366,13 +357,7 @@ CREATE POLICY "Editors can update timestamps"
               AND project_access.user_id = auth.uid()
               AND project_access.permission IN ('admin', 'write')
           )
-          OR EXISTS (
-            SELECT 1 FROM team_members
-            WHERE team_members.team_id = projects.team_id
-              AND team_members.user_id = auth.uid()
-              AND team_members.role IN ('head_coach', 'coach')
-              AND team_members.status = 'accepted'
-          )
+          OR public.is_team_coach(projects.team_id)
         )
     )
   );
@@ -409,12 +394,7 @@ CREATE POLICY "Users with project access can view timestamp athletes"
       WHERE timestamps.id = timestamp_athletes.timestamp_id
         AND (
           projects.created_by = auth.uid()
-          OR EXISTS (
-            SELECT 1 FROM team_members
-            WHERE team_members.team_id = projects.team_id
-              AND team_members.user_id = auth.uid()
-              AND team_members.status = 'accepted'
-          )
+          OR projects.team_id IN (SELECT public.get_my_team_ids())
           OR EXISTS (
             SELECT 1 FROM project_access
             WHERE project_access.project_id = projects.id
@@ -440,13 +420,7 @@ CREATE POLICY "Editors can manage timestamp athletes"
               AND project_access.user_id = auth.uid()
               AND project_access.permission IN ('admin', 'write')
           )
-          OR EXISTS (
-            SELECT 1 FROM team_members
-            WHERE team_members.team_id = projects.team_id
-              AND team_members.user_id = auth.uid()
-              AND team_members.role IN ('head_coach', 'coach')
-              AND team_members.status = 'accepted'
-          )
+          OR public.is_team_coach(projects.team_id)
         )
     )
   );
@@ -467,13 +441,7 @@ CREATE POLICY "Editors can delete timestamp athletes"
               AND project_access.user_id = auth.uid()
               AND project_access.permission IN ('admin', 'write')
           )
-          OR EXISTS (
-            SELECT 1 FROM team_members
-            WHERE team_members.team_id = projects.team_id
-              AND team_members.user_id = auth.uid()
-              AND team_members.role IN ('head_coach', 'coach')
-              AND team_members.status = 'accepted'
-          )
+          OR public.is_team_coach(projects.team_id)
         )
     )
   );
@@ -491,12 +459,7 @@ CREATE POLICY "Users with project access can view drawings"
       WHERE timestamps.id = drawings.timestamp_id
         AND (
           projects.created_by = auth.uid()
-          OR EXISTS (
-            SELECT 1 FROM team_members
-            WHERE team_members.team_id = projects.team_id
-              AND team_members.user_id = auth.uid()
-              AND team_members.status = 'accepted'
-          )
+          OR projects.team_id IN (SELECT public.get_my_team_ids())
           OR EXISTS (
             SELECT 1 FROM project_access
             WHERE project_access.project_id = projects.id
@@ -537,12 +500,7 @@ CREATE POLICY "Users with project access can view comments"
       WHERE timestamps.id = comments.timestamp_id
         AND (
           projects.created_by = auth.uid()
-          OR EXISTS (
-            SELECT 1 FROM team_members
-            WHERE team_members.team_id = projects.team_id
-              AND team_members.user_id = auth.uid()
-              AND team_members.status = 'accepted'
-          )
+          OR projects.team_id IN (SELECT public.get_my_team_ids())
           OR EXISTS (
             SELECT 1 FROM project_access
             WHERE project_access.project_id = projects.id
@@ -592,17 +550,19 @@ CREATE POLICY "Authenticated users can read share links"
   TO authenticated
   USING (true);
 
--- Project admin can create share links
+-- Project admin or creator can create share links
 CREATE POLICY "Project admins can create share links"
   ON share_links FOR INSERT
   TO authenticated
   WITH CHECK (
     created_by = auth.uid()
-    AND EXISTS (
-      SELECT 1 FROM project_access
-      WHERE project_access.project_id = share_links.project_id
-        AND project_access.user_id = auth.uid()
-        AND project_access.permission = 'admin'
+    AND (
+      public.is_project_admin(share_links.project_id)
+      OR EXISTS (
+        SELECT 1 FROM projects
+        WHERE projects.id = share_links.project_id
+          AND projects.created_by = auth.uid()
+      )
     )
   );
 
@@ -620,13 +580,7 @@ CREATE POLICY "Coaches can create invitations"
   TO authenticated
   WITH CHECK (
     invited_by = auth.uid()
-    AND EXISTS (
-      SELECT 1 FROM team_members
-      WHERE team_members.team_id = invitations.team_id
-        AND team_members.user_id = auth.uid()
-        AND team_members.role IN ('head_coach', 'coach')
-        AND team_members.status = 'accepted'
-    )
+    AND public.is_team_coach(invitations.team_id)
   );
 
 CREATE POLICY "Invitee can update invitation status"
@@ -634,3 +588,11 @@ CREATE POLICY "Invitee can update invitation status"
   TO authenticated
   USING (true)
   WITH CHECK (true);
+
+CREATE POLICY "Coaches can delete invitations"
+  ON invitations FOR DELETE
+  TO authenticated
+  USING (
+    invited_by = auth.uid()
+    OR public.is_team_coach(invitations.team_id)
+  );

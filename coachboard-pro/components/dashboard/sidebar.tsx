@@ -12,6 +12,7 @@ import {
   Bell,
   Settings,
   CreditCard,
+  Video,
   LogOut,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +24,7 @@ const NAV_ITEMS = [
   { href: "/team/roster", label: "Roster", icon: ClipboardList, coachOnly: true },
   { href: "/notifications", label: "Notifications", icon: Bell },
   { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/settings/footage", label: "Footage Services", icon: Video, coachOnly: true },
   { href: "/settings/billing", label: "Billing", icon: CreditCard, coachOnly: true },
 ];
 

@@ -51,6 +51,36 @@ export function useCreateAthlete() {
   });
 }
 
+export function useUpdateAthlete() {
+  const supabase = createClient();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      teamId,
+      ...data
+    }: {
+      id: string;
+      teamId: string;
+      first_name?: string;
+      last_name?: string;
+      position?: string;
+      jersey_number?: string;
+    }) => {
+      const { error } = await supabase
+        .from("athletes")
+        .update({ ...data, updated_at: new Date().toISOString() })
+        .eq("id", id);
+      if (error) throw error;
+      return teamId;
+    },
+    onSuccess: (teamId) => {
+      queryClient.invalidateQueries({ queryKey: ["athletes", teamId] });
+    },
+  });
+}
+
 export function useDeleteAthlete() {
   const supabase = createClient();
   const queryClient = useQueryClient();

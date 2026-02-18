@@ -7,6 +7,13 @@ import {
 
 export async function POST(request: NextRequest) {
   try {
+    if (!process.env.RESEND_API_KEY) {
+      return NextResponse.json(
+        { error: "Email service not configured (RESEND_API_KEY missing)" },
+        { status: 503 }
+      );
+    }
+
     const body = await request.json();
     const { type, to, data } = body;
 

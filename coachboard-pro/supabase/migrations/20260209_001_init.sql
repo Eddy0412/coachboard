@@ -84,6 +84,7 @@ CREATE TABLE projects (
   description TEXT,
   youtube_url TEXT NOT NULL DEFAULT '',
   youtube_id TEXT NOT NULL DEFAULT '',
+  category TEXT NOT NULL DEFAULT 'game',
   created_by UUID NOT NULL REFERENCES profiles(id),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -118,12 +119,14 @@ CREATE TABLE athletes (
   last_name TEXT NOT NULL DEFAULT '',
   position TEXT NOT NULL DEFAULT '',
   jersey_number TEXT NOT NULL DEFAULT '',
+  user_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
   created_by UUID NOT NULL REFERENCES profiles(id),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE INDEX idx_athletes_team ON athletes(team_id);
+CREATE INDEX idx_athletes_user ON athletes(user_id);
 
 -- =========================
 -- TIMESTAMPS

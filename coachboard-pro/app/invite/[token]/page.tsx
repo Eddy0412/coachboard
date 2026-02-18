@@ -2,7 +2,6 @@
 
 import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/components/auth/auth-provider";
 import { SignupForm } from "@/components/auth/signup-form";
 import { LoginForm } from "@/components/auth/login-form";
@@ -20,32 +19,29 @@ export default function InvitePage({
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
-  const supabase = createClient();
   const [invitation, setInvitation] = useState<Invitation | null>(null);
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState<"signup" | "login">("signup");
   const [accepting, setAccepting] = useState(false);
 
-  // Fetch invitation
+  // Fetch invitation via API route (bypasses RLS for unauthenticated users)
   useEffect(() => {
     const fetchInvite = async () => {
-      const { data, error } = await supabase
-        .from("invitations")
-        .select("*")
-        .eq("token", token)
-        .eq("status", "pending")
-        .single();
-
-      if (error || !data) {
-        setLoading(false);
-        return;
+      try {
+        const res = await fetch(`/api/invitations?token=${encodeURIComponent(token)}`);
+        if (!res.ok) {
+          setLoading(false);
+          return;
+        }
+        const data = await res.json();
+        setInvitation(data as Invitation);
+      } catch {
+        // fetch failed
       }
-
-      setInvitation(data);
       setLoading(false);
     };
     fetchInvite();
-  }, [token, supabase]);
+  }, [token]);
 
   // If user is logged in, accept the invite
   useEffect(() => {
@@ -54,30 +50,29 @@ export default function InvitePage({
     const acceptInvite = async () => {
       setAccepting(true);
 
-      // Add user to team
-      await supabase.from("team_members").upsert(
-        {
-          team_id: invitation.team_id,
-          user_id: user.id,
-          role: invitation.role,
-          invited_by: invitation.invited_by,
-          status: "accepted",
-        },
-        { onConflict: "team_id,user_id" }
-      );
+      // Use API route (service role) to handle acceptance,
+      // team_members upsert, and athlete roster insert
+      const res = await fetch("/api/invitations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          invitationId: invitation.id,
+          userId: user.id,
+        }),
+      });
 
-      // Mark invitation as accepted
-      await supabase
-        .from("invitations")
-        .update({ status: "accepted" })
-        .eq("id", invitation.id);
+      if (!res.ok) {
+        toast("Failed to accept invitation.", "error");
+        setAccepting(false);
+        return;
+      }
 
       toast("Welcome to the team!", "success");
       router.push("/dashboard");
     };
 
     acceptInvite();
-  }, [user, invitation, authLoading, accepting, supabase, router, toast]);
+  }, [user, invitation, authLoading, accepting, router, toast]);
 
   if (loading || authLoading) {
     return (
