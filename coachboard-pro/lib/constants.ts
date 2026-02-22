@@ -16,7 +16,7 @@ export const FREE_DRAW_COLORS = DRAW_COLORS.slice(0, 3);
 export const DRAW_SIZES = [2, 4, 8, 12] as const;
 
 export const DEFAULT_STEP_SECONDS = 5;
-export const DEFAULT_OVERLAY_DURATION = 10;
+export const DEFAULT_OVERLAY_DURATION = 1;
 
 // Free tier limits
 export const FREE_LIMITS = {

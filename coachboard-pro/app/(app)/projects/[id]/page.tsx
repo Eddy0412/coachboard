@@ -130,12 +130,12 @@ export default function ProjectPage({
     return athletes.find((a) => a.user_id === user.id) ?? null;
   }, [athleteRole, athletes, user]);
 
-  // Athletes only see timestamps where they are tagged
+  // Athletes see timestamps where they are tagged OR where no athletes are tagged
   const visibleTimestamps = useMemo(() => {
     if (!athleteRole || !myAthleteRecord) return timestamps;
     return timestamps.filter((ts) => {
       const taggedIds = timestampAthletesMap[ts.id] || [];
-      return taggedIds.includes(myAthleteRecord.id);
+      return taggedIds.length === 0 || taggedIds.includes(myAthleteRecord.id);
     });
   }, [athleteRole, myAthleteRecord, timestamps, timestampAthletesMap]);
 
@@ -167,7 +167,7 @@ export default function ProjectPage({
       return;
     }
     const start = selectedTimestamp.time_seconds;
-    const duration = selectedTimestamp.overlay_show_sec ?? 5;
+    const duration = selectedTimestamp.overlay_show_sec ?? 1;
     // Overlay (drawing) visibility is always based on overlay_show_sec
     const overlayEnd = start + duration;
     const visible = currentTime >= start && currentTime <= overlayEnd;

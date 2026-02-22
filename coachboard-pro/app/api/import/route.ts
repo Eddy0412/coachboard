@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
             end_time_seconds: ts.endTime ?? null,
             title: ts.title || "Untitled",
             description: ts.description || "",
-            overlay_show_sec: ts.overlayShowSec ?? 5,
+            overlay_show_sec: ts.overlayShowSec ?? 1,
             sort_order: i,
             created_by: user.id,
           })

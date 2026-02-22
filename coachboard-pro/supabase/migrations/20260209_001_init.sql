@@ -138,7 +138,7 @@ CREATE TABLE timestamps (
   end_time_seconds FLOAT,
   title TEXT NOT NULL DEFAULT '',
   description TEXT NOT NULL DEFAULT '',
-  overlay_show_sec INT NOT NULL DEFAULT 5,
+  overlay_show_sec INT NOT NULL DEFAULT 1,
   sort_order INT NOT NULL DEFAULT 0,
   created_by UUID NOT NULL REFERENCES profiles(id),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),

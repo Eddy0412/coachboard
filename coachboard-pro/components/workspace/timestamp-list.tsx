@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { Timestamp, Athlete, TimestampAthlete } from "@/lib/supabase/types";
-import { X } from "lucide-react";
+import { X, Users } from "lucide-react";
 
 interface TimestampListProps {
   timestamps: Timestamp[];
@@ -95,7 +95,7 @@ export function TimestampList({
                   <span className="text-sm font-bold">
                     {formatTime(ts.time_seconds)} — {ts.title || "Untitled"}
                   </span>
-                  <Badge>{taggedAthletes.length} athletes</Badge>
+                  <Badge className="gap-1"><Users className="h-3 w-3" />{taggedAthletes.length}</Badge>
                 </div>
                 {ts.description && (
                   <p className="text-xs text-muted line-clamp-2">

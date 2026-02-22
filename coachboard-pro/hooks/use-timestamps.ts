@@ -71,7 +71,7 @@ export function useCreateTimestamp() {
           time_seconds: data.time_seconds,
           title: data.title || "New coaching point",
           description: "",
-          overlay_show_sec: 5,
+          overlay_show_sec: 1,
           sort_order: nextOrder,
           created_by: user!.id,
         })

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 import { cn } from "@/lib/utils";
 import {
@@ -30,8 +30,14 @@ const NAV_ITEMS = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { profile, signOut } = useAuth();
   const athleteUser = isAthlete(profile);
+
+  const handleSignOut = async () => {
+    await signOut();
+    router.push("/");
+  };
 
   return (
     <aside className="flex h-screen w-60 flex-col border-r border-border bg-card">
@@ -77,7 +83,7 @@ export function Sidebar() {
           {profile?.email}
         </div>
         <button
-          onClick={signOut}
+          onClick={handleSignOut}
           className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-muted hover:text-text hover:bg-input transition-colors"
         >
           <LogOut className="h-4 w-4" />

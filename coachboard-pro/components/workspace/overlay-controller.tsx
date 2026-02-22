@@ -38,6 +38,9 @@ export function OverlayController({ timestamp, canEdit }: OverlayControllerProps
   return (
     <div className="flex flex-wrap items-center gap-2">
       <span className="text-xs text-muted">Overlay:</span>
+      <Button variant="default" size="sm" onClick={() => applyDuration(1)}>
+        1s
+      </Button>
       <Button variant="default" size="sm" onClick={() => applyDuration(5)}>
         5s
       </Button>
