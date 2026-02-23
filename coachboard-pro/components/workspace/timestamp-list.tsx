@@ -19,6 +19,7 @@ interface TimestampListProps {
   timestampAthletes: Record<string, string[]>; // timestampId -> athleteIds[]
   onSelect: (id: string) => void;
   onSeek: (seconds: number) => void;
+  teamId?: string | null;
 }
 
 export function TimestampList({
@@ -27,10 +28,11 @@ export function TimestampList({
   timestampAthletes,
   onSelect,
   onSeek,
+  teamId,
 }: TimestampListProps) {
   const [filter, setFilter] = useState("");
   const { selectedTimestampId } = useWorkspaceStore();
-  const { isPro, isElite } = useSubscription();
+  const { isPro, isElite } = useSubscription(teamId);
   const hasGameDetails = isPro || isElite;
 
   const norm = (s: string) => s.toLowerCase().trim();

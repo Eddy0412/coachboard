@@ -14,12 +14,13 @@ import type { Comment, Profile } from "@/lib/supabase/types";
 interface CommentThreadProps {
   timestampId: string | null;
   isTeamMember?: boolean;
+  teamId?: string | null;
 }
 
-export function CommentThread({ timestampId, isTeamMember }: CommentThreadProps) {
+export function CommentThread({ timestampId, isTeamMember, teamId }: CommentThreadProps) {
   const [content, setContent] = useState("");
   const { user } = useAuth();
-  const { canUseComments } = useSubscription();
+  const { canUseComments } = useSubscription(teamId);
   const supabase = createClient();
   const queryClient = useQueryClient();
 

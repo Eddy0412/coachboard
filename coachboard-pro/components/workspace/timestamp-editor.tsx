@@ -20,6 +20,7 @@ interface TimestampEditorProps {
   projectId: string;
   canEdit: boolean;
   onSeek: (seconds: number) => void;
+  teamId?: string | null;
 }
 
 export function TimestampEditor({
@@ -27,6 +28,7 @@ export function TimestampEditor({
   projectId,
   canEdit,
   onSeek,
+  teamId,
 }: TimestampEditorProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -36,7 +38,7 @@ export function TimestampEditor({
   const deleteTimestamp = useDeleteTimestamp();
   const updateTimestamp = useUpdateTimestamp();
   const { currentTime, setSelectedTimestamp } = useWorkspaceStore();
-  const { isPro, isElite } = useSubscription();
+  const { isPro, isElite } = useSubscription(teamId);
   const hasGameDetails = isPro || isElite;
 
   useEffect(() => {

@@ -27,11 +27,11 @@ export default function ProjectSettingsPage({
   const router = useRouter();
   const { user } = useAuth();
   const { toast } = useToast();
-  const { canUseShareLinks } = useSubscription();
   const supabase = createClient();
   const queryClient = useQueryClient();
 
   const { data: project } = useProject(id);
+  const { canUseShareLinks } = useSubscription(project?.team_id);
   const updateProject = useUpdateProject();
   const deleteProject = useDeleteProject();
 

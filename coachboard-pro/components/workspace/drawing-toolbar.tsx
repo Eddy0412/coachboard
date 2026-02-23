@@ -11,9 +11,10 @@ import { cn } from "@/lib/utils";
 
 interface DrawingToolbarProps {
   canEdit: boolean;
+  teamId?: string | null;
 }
 
-export function DrawingToolbar({ canEdit }: DrawingToolbarProps) {
+export function DrawingToolbar({ canEdit, teamId }: DrawingToolbarProps) {
   const {
     drawEnabled,
     toggleDraw,
@@ -25,7 +26,7 @@ export function DrawingToolbar({ canEdit }: DrawingToolbarProps) {
   } = useWorkspaceStore();
 
   const clearDrawings = useClearDrawings();
-  const { isPro } = useSubscription();
+  const { isPro } = useSubscription(teamId);
 
   const colors = isPro ? DRAW_COLORS : FREE_DRAW_COLORS;
 

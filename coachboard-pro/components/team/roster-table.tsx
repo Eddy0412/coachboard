@@ -100,7 +100,7 @@ export function RosterTable({ teamId, canEdit }: RosterTableProps) {
   const createAthlete = useCreateAthlete();
   const deleteAthlete = useDeleteAthlete();
   const bulkCreate = useBulkCreateAthletes();
-  const { canAddAthlete, canUseCsvExport } = useSubscription();
+  const { canAddAthlete, canUseCsvExport } = useSubscription(teamId);
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 

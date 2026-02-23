@@ -246,7 +246,7 @@ export default function ProjectPage({
         {/* Left: Timestamp list */}
         <Card className="flex flex-col gap-3 xl:max-h-[calc(100vh-180px)] xl:overflow-hidden">
           <VideoControls onAddTimestamp={handleAddTimestamp} canEdit={canEdit} />
-          <DrawingToolbar canEdit={canEdit} />
+          <DrawingToolbar canEdit={canEdit} teamId={project.team_id} />
           <OverlayController timestamp={selectedTimestamp} canEdit={canEdit} />
           <div className="border-t border-border pt-2" />
           <div className="flex-1 overflow-auto">
@@ -256,6 +256,7 @@ export default function ProjectPage({
               timestampAthletes={timestampAthletesMap}
               onSelect={(tsId) => setSelectedTimestamp(tsId)}
               onSeek={handleSeek}
+              teamId={project.team_id}
             />
           </div>
         </Card>
@@ -284,6 +285,7 @@ export default function ProjectPage({
             projectId={id}
             canEdit={canEdit}
             onSeek={handleSeek}
+            teamId={project.team_id}
           />
 
           <div className="border-t border-border pt-2" />
@@ -301,7 +303,7 @@ export default function ProjectPage({
 
           <div className="border-t border-border pt-2" />
 
-          <CommentThread timestampId={selectedTimestampId} isTeamMember={!!teamMember} />
+          <CommentThread timestampId={selectedTimestampId} isTeamMember={!!teamMember} teamId={project.team_id} />
         </Card>
       </div>
     </div>
