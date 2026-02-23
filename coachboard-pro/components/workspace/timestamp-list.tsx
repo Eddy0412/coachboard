@@ -3,11 +3,15 @@
 import { useState } from "react";
 import { formatTime } from "@/lib/youtube";
 import { useWorkspaceStore } from "@/stores/workspace";
+import { useSubscription } from "@/hooks/use-subscription";
+import { ODK_OPTIONS } from "@/lib/constants";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { Timestamp, Athlete, TimestampAthlete } from "@/lib/supabase/types";
 import { X, Users } from "lucide-react";
+
+const odkByValue = Object.fromEntries(ODK_OPTIONS.map((o) => [o.value, o]));
 
 interface TimestampListProps {
   timestamps: Timestamp[];
@@ -26,6 +30,8 @@ export function TimestampList({
 }: TimestampListProps) {
   const [filter, setFilter] = useState("");
   const { selectedTimestampId } = useWorkspaceStore();
+  const { isPro, isElite } = useSubscription();
+  const hasGameDetails = isPro || isElite;
 
   const norm = (s: string) => s.toLowerCase().trim();
 
@@ -38,10 +44,14 @@ export function TimestampList({
       .filter(Boolean)
       .map((a) => `${a!.first_name} ${a!.last_name} ${a!.position} ${a!.jersey_number}`)
       .join(" ");
+    // Match ODK code (OFF, DEF, SPT) — Pro/Elite only
+    const odkInfo = hasGameDetails && ts.odk ? odkByValue[ts.odk] : null;
+    const odkMatch = odkInfo ? norm(odkInfo.code).includes(q) || norm(odkInfo.label).includes(q) : false;
     return (
       norm(ts.title).includes(q) ||
       norm(ts.description).includes(q) ||
-      norm(taggedLabels).includes(q)
+      norm(taggedLabels).includes(q) ||
+      odkMatch
     );
   });
 
@@ -95,7 +105,14 @@ export function TimestampList({
                   <span className="text-sm font-bold">
                     {formatTime(ts.time_seconds)} — {ts.title || "Untitled"}
                   </span>
-                  <Badge className="gap-1"><Users className="h-3 w-3" />{taggedAthletes.length}</Badge>
+                  <div className="flex items-center gap-1">
+                    {hasGameDetails && ts.odk && odkByValue[ts.odk] && (
+                      <Badge variant={odkByValue[ts.odk].variant as "success" | "danger" | "warning"}>
+                        {odkByValue[ts.odk].code}
+                      </Badge>
+                    )}
+                    <Badge className="gap-1"><Users className="h-3 w-3" />{taggedAthletes.length}</Badge>
+                  </div>
                 </div>
                 {ts.description && (
                   <p className="text-xs text-muted line-clamp-2">

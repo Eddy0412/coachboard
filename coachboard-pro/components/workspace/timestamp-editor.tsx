@@ -4,11 +4,15 @@ import { useEffect, useState } from "react";
 import { useWorkspaceStore } from "@/stores/workspace";
 import { useAutoSaveTimestamp, useDeleteTimestamp, useUpdateTimestamp } from "@/hooks/use-timestamps";
 import { formatTime } from "@/lib/youtube";
+import { ODK_OPTIONS, DOWN_OPTIONS, HASH_OPTIONS } from "@/lib/constants";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, MapPin, Clock } from "lucide-react";
+import { Trash2, MapPin, Clock, Lock } from "lucide-react";
+import Link from "next/link";
+import { cn } from "@/lib/utils";
+import { useSubscription } from "@/hooks/use-subscription";
 import type { Timestamp } from "@/lib/supabase/types";
 
 interface TimestampEditorProps {
@@ -26,18 +30,26 @@ export function TimestampEditor({
 }: TimestampEditorProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [distance, setDistance] = useState("");
+  const [los, setLos] = useState("");
   const autoSave = useAutoSaveTimestamp();
   const deleteTimestamp = useDeleteTimestamp();
   const updateTimestamp = useUpdateTimestamp();
   const { currentTime, setSelectedTimestamp } = useWorkspaceStore();
+  const { isPro, isElite } = useSubscription();
+  const hasGameDetails = isPro || isElite;
 
   useEffect(() => {
     if (timestamp) {
       setTitle(timestamp.title);
       setDescription(timestamp.description);
+      setDistance(timestamp.distance ?? "");
+      setLos(timestamp.los ?? "");
     } else {
       setTitle("");
       setDescription("");
+      setDistance("");
+      setLos("");
     }
   }, [timestamp?.id]);
 
@@ -53,6 +65,26 @@ export function TimestampEditor({
     if (timestamp && canEdit) {
       autoSave(timestamp.id, { description: val });
     }
+  };
+
+  const handleDistanceChange = (val: string) => {
+    setDistance(val);
+    if (timestamp && canEdit) {
+      autoSave(timestamp.id, { distance: val || null });
+    }
+  };
+
+  const handleLosChange = (val: string) => {
+    setLos(val);
+    if (timestamp && canEdit) {
+      autoSave(timestamp.id, { los: val || null });
+    }
+  };
+
+  const handleToggle = (field: "odk" | "down" | "hash", value: string) => {
+    if (!timestamp || !canEdit) return;
+    const newVal = timestamp[field] === value ? null : value;
+    updateTimestamp.mutate({ id: timestamp.id, [field]: newVal });
   };
 
   const handleDelete = () => {
@@ -90,9 +122,146 @@ export function TimestampEditor({
         placeholder="Notes / coaching points"
         value={description}
         onChange={(e) => handleDescriptionChange(e.target.value)}
-        rows={6}
+        rows={hasGameDetails ? 3 : 6}
         disabled={!canEdit}
+        className={hasGameDetails ? "min-h-[48px]" : undefined}
       />
+
+      {/* Game detail fields — Pro / Elite only */}
+      {hasGameDetails ? (
+        <div className="flex flex-col gap-2.5 rounded-xl border border-border bg-input/50 p-3">
+          {/* ODK */}
+          <div className="flex items-center gap-2">
+            <span className="w-12 shrink-0 text-xs text-muted">ODK</span>
+            <div className="flex gap-1">
+              {ODK_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => handleToggle("odk", opt.value)}
+                  disabled={!canEdit}
+                  className={cn(
+                    "rounded-lg px-2.5 py-1 text-xs font-medium transition-colors",
+                    timestamp.odk === opt.value
+                      ? opt.variant === "success"
+                        ? "bg-success/10 border border-success/30 text-success"
+                        : opt.variant === "danger"
+                          ? "bg-danger/10 border border-danger-br text-danger"
+                          : "bg-warning/10 border border-warning/30 text-warning"
+                      : "border border-border text-muted hover:text-text",
+                    !canEdit && "cursor-default opacity-70"
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Down & Distance */}
+          <div className="flex items-center gap-2">
+            <span className="w-12 shrink-0 text-xs text-muted">Down</span>
+            <div className="flex gap-1">
+              {DOWN_OPTIONS.map((d) => (
+                <button
+                  key={d}
+                  onClick={() => handleToggle("down", d)}
+                  disabled={!canEdit}
+                  className={cn(
+                    "rounded-lg px-2.5 py-1 text-xs font-medium transition-colors border",
+                    timestamp.down === d
+                      ? "bg-primary-bg border-primary-br text-text"
+                      : "border-border text-muted hover:text-text",
+                    !canEdit && "cursor-default opacity-70"
+                  )}
+                >
+                  {d}
+                </button>
+              ))}
+            </div>
+            <span className="text-xs text-muted">&</span>
+            <Input
+              placeholder="Yds"
+              value={distance}
+              onChange={(e) => handleDistanceChange(e.target.value)}
+              disabled={!canEdit}
+              className="h-7 w-16 text-xs"
+            />
+          </div>
+
+          {/* LOS */}
+          <div className="flex items-center gap-2">
+            <span className="w-12 shrink-0 text-xs text-muted">LOS</span>
+            <Input
+              placeholder="e.g. −25 or +40"
+              value={los}
+              onChange={(e) => handleLosChange(e.target.value)}
+              disabled={!canEdit}
+              className="h-7 w-28 text-xs"
+            />
+            <span className="text-[10px] text-muted">− own / + opp</span>
+          </div>
+
+          {/* Hash */}
+          <div className="flex items-center gap-2">
+            <span className="w-12 shrink-0 text-xs text-muted">Hash</span>
+            <div className="flex gap-1">
+              {HASH_OPTIONS.map((h) => (
+                <button
+                  key={h.value}
+                  onClick={() => handleToggle("hash", h.value)}
+                  disabled={!canEdit}
+                  className={cn(
+                    "rounded-lg px-2.5 py-1 text-xs font-medium transition-colors border",
+                    timestamp.hash === h.value
+                      ? "bg-primary-bg border-primary-br text-text"
+                      : "border-border text-muted hover:text-text",
+                    !canEdit && "cursor-default opacity-70"
+                  )}
+                >
+                  {h.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <Link href="/settings/billing" className="block">
+          <div className="relative overflow-hidden rounded-xl border border-border bg-input/50 p-3">
+            <div className="flex flex-col gap-2.5 opacity-30 pointer-events-none select-none">
+              <div className="flex items-center gap-2">
+                <span className="w-12 shrink-0 text-xs text-muted">ODK</span>
+                <div className="flex gap-1">
+                  {ODK_OPTIONS.map((opt) => (
+                    <span key={opt.value} className="rounded-lg border border-border px-2.5 py-1 text-xs text-muted">{opt.label}</span>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-12 shrink-0 text-xs text-muted">Down</span>
+                <span className="rounded-lg border border-border px-2.5 py-1 text-xs text-muted">1st</span>
+                <span className="text-xs text-muted">&</span>
+                <span className="rounded-lg border border-border px-4 py-1 text-xs text-muted">Yds</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-12 shrink-0 text-xs text-muted">LOS</span>
+                <span className="rounded-lg border border-border px-4 py-1 text-xs text-muted">−25</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-12 shrink-0 text-xs text-muted">Hash</span>
+                <span className="rounded-lg border border-border px-2.5 py-1 text-xs text-muted">Left</span>
+                <span className="rounded-lg border border-border px-2.5 py-1 text-xs text-muted">Middle</span>
+                <span className="rounded-lg border border-border px-2.5 py-1 text-xs text-muted">Right</span>
+              </div>
+            </div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="flex items-center gap-2 rounded-xl border border-primary-br bg-card/90 px-4 py-2">
+                <Lock className="h-3.5 w-3.5 text-primary" />
+                <span className="text-xs font-bold text-text">Unlock with Pro</span>
+              </div>
+            </div>
+          </div>
+        </Link>
+      )}
 
       {/* End time controls */}
       <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-input/50 p-2">

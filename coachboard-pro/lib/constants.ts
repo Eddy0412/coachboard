@@ -36,5 +36,20 @@ export const PRO_LIMITS = {
   maxAthletes: Infinity,
 } as const;
 
+// ODK (Offense / Defense / Kicking) options
+export const ODK_OPTIONS = [
+  { value: "offense", label: "Offense", code: "OFF", variant: "success" as const },
+  { value: "defense", label: "Defense", code: "DEF", variant: "danger" as const },
+  { value: "kicking", label: "Special Teams", code: "SPT", variant: "warning" as const },
+] as const;
+
+export const DOWN_OPTIONS = ["1st", "2nd", "3rd", "4th"] as const;
+
+export const HASH_OPTIONS = [
+  { value: "left", label: "Left" },
+  { value: "middle", label: "Middle" },
+  { value: "right", label: "Right" },
+] as const;
+
 // Debounce timing for auto-save (ms)
 export const AUTOSAVE_DEBOUNCE_MS = 1000;

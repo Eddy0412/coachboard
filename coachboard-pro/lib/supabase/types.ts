@@ -81,6 +81,11 @@ export interface Timestamp {
   title: string;
   description: string;
   overlay_show_sec: number;
+  odk: string | null;
+  down: string | null;
+  distance: string | null;
+  los: string | null;
+  hash: string | null;
   sort_order: number;
   created_by: string;
   created_at: string;
