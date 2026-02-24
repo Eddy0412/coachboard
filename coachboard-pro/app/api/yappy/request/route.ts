@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Send email to billing
-    const billingEmail = "billing@coachboard.kkmsports.xyz";
+    const billingEmail = "billing@kkmsports.xyz";
     let emailSent = false;
 
     if (process.env.RESEND_API_KEY) {
