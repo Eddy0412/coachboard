@@ -23,6 +23,8 @@ export default function BillingPage() {
   const paymentProvider = (profile as Record<string, unknown> | null)?.payment_provider as string | null;
   const isStripe = paymentProvider === "stripe" || (!paymentProvider && isPro);
   const isPagueloFacil = paymentProvider === "paguelofacil";
+  const isYappy = paymentProvider === "yappy";
+  const hasPfSubscription = isPagueloFacil || isYappy;
 
   // Show toast from URL params
   useEffect(() => {
@@ -31,9 +33,9 @@ export default function BillingPage() {
     }
   }, [searchParams]);
 
-  // Fetch PF subscription if provider is paguelofacil
+  // Fetch subscription if provider is paguelofacil or yappy
   useEffect(() => {
-    if (!isPagueloFacil || !profile?.id) return;
+    if (!hasPfSubscription || !profile?.id) return;
     const supabase = createClient();
     supabase
       .from("pf_subscriptions")
@@ -44,7 +46,7 @@ export default function BillingPage() {
       .then(({ data }) => {
         if (data) setPfSub(data as PfSubscription);
       });
-  }, [isPagueloFacil, profile?.id]);
+  }, [hasPfSubscription, profile?.id]);
 
   const handleManage = async () => {
     setLoading(true);
@@ -98,8 +100,8 @@ export default function BillingPage() {
         </div>
       </Card>
 
-      {isPro && isPagueloFacil && pfSub && (
-        <PfSubscriptionCard subscription={pfSub} />
+      {isPro && hasPfSubscription && pfSub && (
+        <PfSubscriptionCard subscription={pfSub} provider={paymentProvider as "paguelofacil" | "yappy"} />
       )}
 
       {!isPro && <PricingCards />}

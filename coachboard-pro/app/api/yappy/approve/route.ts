@@ -77,12 +77,15 @@ export async function GET(request: NextRequest) {
   }
 
   // Upgrade to pro
+  const now = new Date();
+  const periodEnd = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
+
   const { error } = await supabaseAdmin
     .from("profiles")
     .update({
       subscription_status: "pro",
-      payment_provider: "paguelofacil",
-      updated_at: new Date().toISOString(),
+      payment_provider: "yappy",
+      updated_at: now.toISOString(),
     })
     .eq("id", userId);
 
@@ -93,6 +96,27 @@ export async function GET(request: NextRequest) {
       headers: { "Content-Type": "text/html" },
     });
   }
+
+  // Create subscription record for billing page display
+  await supabaseAdmin
+    .from("pf_subscriptions")
+    .upsert(
+      {
+        user_id: userId,
+        plan_interval: "yearly",
+        amount_usd: 240,
+        cod_oper: "YAPPY-MANUAL",
+        status: "active",
+        current_period_start: now.toISOString(),
+        current_period_end: periodEnd.toISOString(),
+        cancel_at_period_end: false,
+        last_charge_at: now.toISOString(),
+        last_charge_status: "approved",
+        consecutive_failures: 0,
+        updated_at: now.toISOString(),
+      },
+      { onConflict: "user_id" }
+    );
 
   // Send confirmation email to user
   try {

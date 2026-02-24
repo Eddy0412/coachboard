@@ -5,7 +5,7 @@ export type ProjectPermission = "admin" | "write" | "read";
 export type InvitationStatus = "pending" | "accepted" | "expired";
 export type DrawingTool = "pen" | "erase";
 
-export type PaymentProvider = "stripe" | "paguelofacil" | null;
+export type PaymentProvider = "stripe" | "paguelofacil" | "yappy" | null;
 
 export interface Profile {
   id: string;

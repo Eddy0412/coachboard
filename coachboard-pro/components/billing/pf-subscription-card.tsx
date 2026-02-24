@@ -9,19 +9,23 @@ import type { PfSubscription } from "@/lib/supabase/types";
 
 interface PfSubscriptionCardProps {
   subscription: PfSubscription;
+  provider?: "paguelofacil" | "yappy";
 }
 
-export function PfSubscriptionCard({ subscription }: PfSubscriptionCardProps) {
+export function PfSubscriptionCard({ subscription, provider = "paguelofacil" }: PfSubscriptionCardProps) {
   const [loading, setLoading] = useState(false);
   const [canceledUntil, setCanceledUntil] = useState<string | null>(
     subscription.cancel_at_period_end ? subscription.current_period_end : null
   );
 
+  const isYappy = provider === "yappy";
   const isPastDue = subscription.status === "past_due";
   const periodEnd = new Date(subscription.current_period_end).toLocaleDateString(
     "en-US",
     { month: "long", day: "numeric", year: "numeric" }
   );
+
+  const providerLabel = isYappy ? "Yappy" : "PagueloFacil";
 
   const handleCancel = async () => {
     setLoading(true);
@@ -42,10 +46,10 @@ export function PfSubscriptionCard({ subscription }: PfSubscriptionCardProps) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <CreditCard className="h-4 w-4" />
-          PagueloFacil Subscription
+          {providerLabel} Subscription
         </CardTitle>
         <CardDescription>
-          Manage your PagueloFacil billing.
+          Manage your {providerLabel} billing.
         </CardDescription>
       </CardHeader>
 
@@ -69,9 +73,14 @@ export function PfSubscriptionCard({ subscription }: PfSubscriptionCardProps) {
           )}
         </div>
 
+        <div className="flex items-center gap-2 text-sm">
+          <span className="text-muted">Payment method:</span>
+          <span className="font-medium">{providerLabel}</span>
+        </div>
+
         {!canceledUntil && !isPastDue && (
           <div className="text-sm">
-            <span className="text-muted">Next renewal:</span>{" "}
+            <span className="text-muted">{isYappy ? "Expires:" : "Next renewal:"}</span>{" "}
             <span className="font-medium">{periodEnd}</span>
           </div>
         )}
@@ -94,7 +103,8 @@ export function PfSubscriptionCard({ subscription }: PfSubscriptionCardProps) {
           </div>
         )}
 
-        {!canceledUntil && !isPastDue && (
+        {/* Only show cancel for PagueloFacil (has auto-renewal). Yappy is manual. */}
+        {!isYappy && !canceledUntil && !isPastDue && (
           <Button
             variant="default"
             size="sm"
