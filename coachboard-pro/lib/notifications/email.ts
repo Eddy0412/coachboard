@@ -153,6 +153,14 @@ export async function sendYappyPaymentRequestEmail(
     userId: string;
   }
 ) {
+  const crypto = await import("crypto");
+  const secret = process.env.CRON_SECRET || "";
+  const token = crypto
+    .createHmac("sha256", secret)
+    .update(`yappy-approve:${data.userId}`)
+    .digest("hex");
+  const approveUrl = `${getAppUrl()}/api/yappy/approve?userId=${data.userId}&token=${token}`;
+
   await getResend().emails.send({
     from: FROM_APP,
     to,
@@ -168,7 +176,35 @@ export async function sendYappyPaymentRequestEmail(
         <tr><td style="padding:8px;font-weight:bold;border-bottom:1px solid #eee;">Team ID</td><td style="padding:8px;border-bottom:1px solid #eee;font-family:monospace;font-size:12px;">${data.teamId}</td></tr>
         <tr><td style="padding:8px;font-weight:bold;border-bottom:1px solid #eee;">User ID</td><td style="padding:8px;border-bottom:1px solid #eee;font-family:monospace;font-size:12px;">${data.userId}</td></tr>
       </table>
-      <p style="margin-top:12px;color:#666;">After receiving the Yappy payment, update this user's profile to Pro in the Supabase dashboard.</p>
+      <p style="margin-top:16px;">After confirming the Yappy payment was received, click the button below to activate their Pro plan:</p>
+      <p><a href="${approveUrl}" style="display:inline-block;padding:14px 28px;background:#22c55e;color:white;text-decoration:none;border-radius:8px;font-weight:bold;font-size:16px;">Approve &amp; Activate Pro</a></p>
+      <p style="margin-top:8px;color:#999;font-size:12px;">This link is secure and does not expire.</p>
+    `,
+  });
+}
+
+export async function sendYappyApprovalEmail(
+  to: string,
+  data: { name: string }
+) {
+  await getResend().emails.send({
+    from: FROM_APP,
+    to,
+    subject: "Your Pro Plan is Now Active!",
+    html: `
+      <h2>Welcome to Pro, ${data.name}!</h2>
+      <p>Your Yappy payment has been confirmed and your <strong>Pro Annual Plan</strong> is now active.</p>
+      <p>You now have access to all Pro features:</p>
+      <ul>
+        <li>Unlimited projects</li>
+        <li>Unlimited athletes</li>
+        <li>Email &amp; WhatsApp notifications</li>
+        <li>Share links, comments &amp; collaboration</li>
+        <li>Full telestration (all colors)</li>
+        <li>CSV import/export</li>
+        <li>Priority support</li>
+      </ul>
+      <p style="margin-top:16px;"><a href="${getAppUrl()}/dashboard" style="display:inline-block;padding:12px 24px;background:#3457ff;color:white;text-decoration:none;border-radius:8px;">Go to Dashboard</a></p>
     `,
   });
 }
