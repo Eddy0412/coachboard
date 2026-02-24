@@ -160,6 +160,7 @@ export async function POST(request: NextRequest) {
           .update({
             subscription_status: "pro",
             stripe_subscription_id: subscriptionId,
+            payment_provider: "stripe",
             updated_at: new Date().toISOString(),
           })
           .eq("id", profile.id);

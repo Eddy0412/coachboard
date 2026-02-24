@@ -5,6 +5,8 @@ export type ProjectPermission = "admin" | "write" | "read";
 export type InvitationStatus = "pending" | "accepted" | "expired";
 export type DrawingTool = "pen" | "erase";
 
+export type PaymentProvider = "stripe" | "paguelofacil" | null;
+
 export interface Profile {
   id: string;
   email: string;
@@ -15,8 +17,41 @@ export interface Profile {
   stripe_customer_id: string | null;
   subscription_status: SubscriptionStatus;
   stripe_subscription_id: string | null;
+  payment_provider: PaymentProvider;
   created_at: string;
   updated_at: string;
+}
+
+export type PfSubscriptionStatus = "active" | "canceled" | "past_due" | "expired";
+export type PfPlanInterval = "monthly" | "yearly";
+
+export interface PfSubscription {
+  id: string;
+  user_id: string;
+  plan_interval: PfPlanInterval;
+  amount_usd: number;
+  cod_oper: string;
+  status: PfSubscriptionStatus;
+  current_period_start: string;
+  current_period_end: string;
+  cancel_at_period_end: boolean;
+  last_charge_at: string | null;
+  last_charge_status: string | null;
+  consecutive_failures: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PfPaymentLog {
+  id: string;
+  user_id: string;
+  pf_subscription_id: string | null;
+  cod_oper: string;
+  amount_usd: number;
+  status: string;
+  payment_type: string;
+  raw_response: Record<string, unknown> | null;
+  created_at: string;
 }
 
 export interface Team {
@@ -177,6 +212,8 @@ export interface Database {
       notifications: TableDef<Notification>;
       share_links: TableDef<ShareLink>;
       invitations: TableDef<Invitation>;
+      pf_subscriptions: TableDef<PfSubscription>;
+      pf_payment_log: TableDef<PfPaymentLog>;
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

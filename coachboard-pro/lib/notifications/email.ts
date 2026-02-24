@@ -142,6 +142,37 @@ export async function sendBookingStatusEmail(
   });
 }
 
+export async function sendYappyPaymentRequestEmail(
+  to: string,
+  data: {
+    requesterName: string;
+    requesterEmail: string;
+    yappyPhone: string;
+    teamId: string;
+    teamName: string;
+    userId: string;
+  }
+) {
+  await getResend().emails.send({
+    from: FROM_APP,
+    to,
+    subject: `Yappy Payment Request: ${data.requesterName}`,
+    html: `
+      <h2>New Yappy Payment Request</h2>
+      <p>A coach has requested to pay for the <strong>Pro Annual Plan ($240/yr)</strong> via Yappy.</p>
+      <table style="border-collapse:collapse;width:100%;max-width:500px;">
+        <tr><td style="padding:8px;font-weight:bold;border-bottom:1px solid #eee;">Name</td><td style="padding:8px;border-bottom:1px solid #eee;">${data.requesterName}</td></tr>
+        <tr><td style="padding:8px;font-weight:bold;border-bottom:1px solid #eee;">Email</td><td style="padding:8px;border-bottom:1px solid #eee;">${data.requesterEmail}</td></tr>
+        <tr><td style="padding:8px;font-weight:bold;border-bottom:1px solid #eee;">Yappy Phone</td><td style="padding:8px;border-bottom:1px solid #eee;">${data.yappyPhone}</td></tr>
+        <tr><td style="padding:8px;font-weight:bold;border-bottom:1px solid #eee;">Team</td><td style="padding:8px;border-bottom:1px solid #eee;">${data.teamName}</td></tr>
+        <tr><td style="padding:8px;font-weight:bold;border-bottom:1px solid #eee;">Team ID</td><td style="padding:8px;border-bottom:1px solid #eee;font-family:monospace;font-size:12px;">${data.teamId}</td></tr>
+        <tr><td style="padding:8px;font-weight:bold;border-bottom:1px solid #eee;">User ID</td><td style="padding:8px;border-bottom:1px solid #eee;font-family:monospace;font-size:12px;">${data.userId}</td></tr>
+      </table>
+      <p style="margin-top:12px;color:#666;">After receiving the Yappy payment, update this user's profile to Pro in the Supabase dashboard.</p>
+    `,
+  });
+}
+
 export async function sendAthleteTaggedEmail(
   to: string,
   data: {
