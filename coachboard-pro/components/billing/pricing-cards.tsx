@@ -143,22 +143,31 @@ export function PricingCards() {
       <div className="flex items-center gap-2">
         <span className="text-sm font-medium text-muted">Pay with:</span>
         <div className="inline-flex rounded-md border border-border">
-          {toggleButtons.map((btn, i) => (
-            <button
-              key={btn.key}
-              type="button"
-              onClick={() => setPaymentMethod(btn.key)}
-              className={`px-3 py-1.5 text-sm font-medium transition-colors ${
-                i === 0 ? "rounded-l-md" : ""
-              } ${i === toggleButtons.length - 1 ? "rounded-r-md" : ""} ${
-                paymentMethod === btn.key
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-transparent text-muted hover:text-foreground"
-              }`}
-            >
-              {btn.label}
-            </button>
-          ))}
+          {toggleButtons.map((btn, i) => {
+            const isDisabled = btn.key === "stripe";
+            return (
+              <button
+                key={btn.key}
+                type="button"
+                disabled={isDisabled}
+                onClick={() => !isDisabled && setPaymentMethod(btn.key)}
+                className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+                  i === 0 ? "rounded-l-md" : ""
+                } ${i === toggleButtons.length - 1 ? "rounded-r-md" : ""} ${
+                  isDisabled
+                    ? "opacity-50 cursor-not-allowed bg-transparent text-muted"
+                    : paymentMethod === btn.key
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-transparent text-muted hover:text-foreground"
+                }`}
+              >
+                {btn.label}
+                {isDisabled && (
+                  <span className="ml-1 text-xs">(coming soon)</span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 
