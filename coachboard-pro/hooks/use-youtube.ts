@@ -140,6 +140,27 @@ export function useYouTubePlayer(containerId: string) {
     }
   }, [containerId]);
 
+  const setPlaybackRate = useCallback(
+    (rate: number) => {
+      const p = players[containerId];
+      if (p && typeof p.setPlaybackRate === "function") {
+        p.setPlaybackRate(rate);
+      }
+    },
+    [containerId]
+  );
+
+  const getPlaybackRate = useCallback(
+    () => {
+      const p = players[containerId];
+      if (p && typeof p.getPlaybackRate === "function") {
+        return p.getPlaybackRate();
+      }
+      return 1;
+    },
+    [containerId]
+  );
+
   useEffect(() => {
     return () => {
       if (timeInterval) {
@@ -157,5 +178,7 @@ export function useYouTubePlayer(containerId: string) {
     seekTo,
     getCurrentTime,
     toggleMute,
+    setPlaybackRate,
+    getPlaybackRate,
   };
 }

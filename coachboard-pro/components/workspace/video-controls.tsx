@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useYouTubePlayer } from "@/hooks/use-youtube";
 import { useWorkspaceStore } from "@/stores/workspace";
 import { formatTime } from "@/lib/youtube";
@@ -13,7 +14,10 @@ import {
   SkipBack,
   SkipForward,
   Timer,
+  Gauge,
 } from "lucide-react";
+
+const SPEEDS = [0.25, 0.5, 1, 1.5, 2];
 
 interface VideoControlsProps {
   onAddTimestamp: () => void;
@@ -21,9 +25,15 @@ interface VideoControlsProps {
 }
 
 export function VideoControls({ onAddTimestamp, canEdit }: VideoControlsProps) {
-  const { play, pause, seekTo, getCurrentTime, toggleMute } =
+  const { play, pause, seekTo, getCurrentTime, toggleMute, setPlaybackRate } =
     useYouTubePlayer("yt-player");
   const { currentTime, status } = useWorkspaceStore();
+  const [activeRate, setActiveRate] = useState(1);
+
+  const handleSpeedChange = (rate: number) => {
+    setPlaybackRate(rate);
+    setActiveRate(rate);
+  };
 
   return (
     <div className="flex flex-col gap-2">
@@ -68,6 +78,26 @@ export function VideoControls({ onAddTimestamp, canEdit }: VideoControlsProps) {
         >
           <SkipForward className="h-5 w-5" />
         </Button>
+
+        <div className="flex items-center gap-1 ml-1">
+          <Gauge className="h-3.5 w-3.5 text-muted" />
+          {SPEEDS.map((rate) => (
+            <button
+              key={rate}
+              type="button"
+              onClick={() => handleSpeedChange(rate)}
+              title={`${rate}x speed`}
+              className={`px-1 py-0.5 text-[11px] rounded transition-colors ${
+                activeRate === rate
+                  ? "text-primary font-semibold"
+                  : "text-muted hover:text-text"
+              }`}
+            >
+              {rate === 1 ? "1x" : `${rate}x`}
+            </button>
+          ))}
+        </div>
+
         {canEdit && (
           <Button variant="primary" onClick={onAddTimestamp}>
             <Timer className="h-4 w-4" />
