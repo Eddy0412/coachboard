@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
@@ -6,6 +7,7 @@ export default function LandingPage() {
     <div className="flex min-h-screen flex-col">
       <header className="flex items-center justify-between border-b border-border px-6 py-4">
         <div className="flex items-center gap-3">
+          <Image src="/logo.png" alt="Coachboard Pro logo" width={32} height={32} />
           <h1 className="text-xl font-extrabold">Coachboard Pro</h1>
           <span className="rounded-full border border-border bg-pill px-2.5 py-0.5 text-xs text-muted">
             v2.0
