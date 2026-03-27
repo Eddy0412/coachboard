@@ -3,6 +3,7 @@
 import { useAuth } from "@/components/auth/auth-provider";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { NotificationBell } from "@/components/notifications/notification-bell";
+import { TourGuide } from "@/components/dashboard/tour-guide";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { loading } = useAuth();
@@ -17,6 +18,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-screen">
+      <TourGuide />
       <Sidebar />
       <div className="flex flex-1 flex-col">
         <header className="flex items-center justify-end border-b border-border px-6 py-3">
