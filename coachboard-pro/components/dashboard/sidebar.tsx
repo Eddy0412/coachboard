@@ -22,6 +22,7 @@ import {
   PlayCircle,
   ChevronRight,
 } from "lucide-react";
+import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { isAthlete } from "@/lib/permissions";
 
@@ -58,6 +59,7 @@ export function Sidebar() {
   return (
     <aside className="flex h-screen w-60 flex-col border-r border-border bg-card">
       <div className="flex items-center gap-2 border-b border-border px-4 py-4">
+        <Image src="/logo.png" alt="Coachboard Pro logo" width={24} height={24} />
         <Link href="/dashboard" className="text-lg font-extrabold">
           Coachboard
         </Link>
