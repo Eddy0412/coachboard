@@ -63,20 +63,20 @@ const STEPS = [
 const STORAGE_KEY = (userId: string) => `tour_dismissed_${userId}`;
 
 export function TourGuide() {
-  const { profile } = useAuth();
+  const { user } = useAuth();
   const [visible, setVisible] = useState(false);
   const [step, setStep] = useState(0);
   const [dontShow, setDontShow] = useState(false);
 
   useEffect(() => {
-    if (!profile?.id) return;
-    const dismissed = localStorage.getItem(STORAGE_KEY(profile.id));
+    if (!user?.id) return;
+    const dismissed = localStorage.getItem(STORAGE_KEY(user.id));
     if (!dismissed) setVisible(true);
-  }, [profile?.id]);
+  }, [user?.id]);
 
   function close() {
-    if (dontShow && profile?.id) {
-      localStorage.setItem(STORAGE_KEY(profile.id), "true");
+    if (dontShow && user?.id) {
+      localStorage.setItem(STORAGE_KEY(user.id), "true");
     }
     setVisible(false);
   }
