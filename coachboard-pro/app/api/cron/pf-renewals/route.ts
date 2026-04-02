@@ -8,7 +8,7 @@ function getSupabaseAdmin() {
   );
 }
 
-export async function POST(request: NextRequest) {
+export async function GET(request: NextRequest) {
   // Validate cron secret
   const authHeader = request.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;

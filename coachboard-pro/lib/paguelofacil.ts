@@ -141,7 +141,7 @@ export async function chargeRecurrent({
     body: JSON.stringify({
       CCLW: cclw,
       codOper,
-      CMTN: amount.toFixed(2),
+      amount: parseFloat(amount.toFixed(2)),
       CDSC: description,
       EMAIL: email,
     }),
