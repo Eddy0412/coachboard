@@ -73,16 +73,19 @@ export async function GET(request: NextRequest) {
         // Get user email for the charge
         const { data: profile } = await supabaseAdmin
           .from("profiles")
-          .select("email")
+          .select("email, phone")
           .eq("id", sub.user_id)
           .single();
 
-        const email = (profile as { email: string } | null)?.email || "";
+        const email = (profile as { email: string; phone: string } | null)?.email || "";
+        const phone = (profile as { email: string; phone: string } | null)?.phone || "";
 
         const result = await chargeRecurrent({
           codOper: sub.cod_oper,
           amount: sub.amount_usd,
           email,
+          phone,
+          concept: "Coachboard Pro",
           description: `Coachboard Pro ${sub.plan_interval} renewal`,
         });
 

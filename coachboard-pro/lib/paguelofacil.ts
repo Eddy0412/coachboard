@@ -113,7 +113,9 @@ interface ChargeRecurrentParams {
   codOper: string;
   amount: number;
   email: string;
+  phone: string;
   description: string;
+  concept: string;
 }
 
 interface RecurrentResult {
@@ -126,7 +128,9 @@ export async function chargeRecurrent({
   codOper,
   amount,
   email,
+  phone,
   description,
+  concept,
 }: ChargeRecurrentParams): Promise<RecurrentResult> {
   const baseUrl = getBaseUrl();
   const cclw = getCCLW();
@@ -139,11 +143,14 @@ export async function chargeRecurrent({
       Authorization: token,
     },
     body: JSON.stringify({
-      CCLW: cclw,
+      cclw,
       codOper,
       amount: parseFloat(amount.toFixed(2)),
-      CDSC: description,
-      EMAIL: email,
+      taxAmount: 0,
+      email,
+      phone,
+      concept,
+      description,
     }),
   });
 
