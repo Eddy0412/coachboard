@@ -209,6 +209,43 @@ export async function sendYappyApprovalEmail(
   });
 }
 
+export async function sendRenewalReminderEmail(
+  to: string,
+  data: { name: string; renewalDate: string; amount: number; paymentUrl: string }
+) {
+  await getResend().emails.send({
+    from: FROM_APP,
+    to,
+    subject: "Your Coachboard Pro subscription renews in 7 days",
+    html: `
+      <h2>Renewal Reminder</h2>
+      <p>Hi ${data.name},</p>
+      <p>Your <strong>Coachboard Pro Monthly Plan</strong> renews on <strong>${data.renewalDate}</strong> for <strong>$${data.amount}/month</strong>.</p>
+      <p>Click below to complete your payment and keep uninterrupted access to all Pro features:</p>
+      <p style="margin-top:16px;"><a href="${data.paymentUrl}" style="display:inline-block;padding:14px 28px;background:#3457ff;color:white;text-decoration:none;border-radius:8px;font-weight:bold;">Pay Now — $${data.amount}</a></p>
+      <p style="margin-top:12px;color:#999;font-size:12px;">If you no longer wish to continue, you can ignore this email. Your subscription will expire on ${data.renewalDate}.</p>
+    `,
+  });
+}
+
+export async function sendRenewalOverdueEmail(
+  to: string,
+  data: { name: string; dueDate: string; amount: number; paymentUrl: string }
+) {
+  await getResend().emails.send({
+    from: FROM_APP,
+    to,
+    subject: "Action required — Coachboard Pro subscription expired",
+    html: `
+      <h2>Your Pro subscription has expired</h2>
+      <p>Hi ${data.name},</p>
+      <p>Your <strong>Coachboard Pro Monthly Plan</strong> expired on <strong>${data.dueDate}</strong>. Your account has been downgraded to the Free plan.</p>
+      <p>To restore full access, complete your payment below:</p>
+      <p style="margin-top:16px;"><a href="${data.paymentUrl}" style="display:inline-block;padding:14px 28px;background:#ef4444;color:white;text-decoration:none;border-radius:8px;font-weight:bold;">Renew Now — $${data.amount}</a></p>
+    `,
+  });
+}
+
 export async function sendAthleteTaggedEmail(
   to: string,
   data: {

@@ -65,6 +65,14 @@ export async function GET(request: NextRequest) {
     const now = new Date();
     const periodEnd = new Date(now.getTime() + periodDays * 24 * 60 * 60 * 1000);
 
+    // Check if this is a renewal (existing subscription) or a new signup
+    const { data: existingSub } = await supabaseAdmin
+      .from("pf_subscriptions")
+      .select("id")
+      .eq("user_id", userId)
+      .single();
+    const paymentType = existingSub ? "renewal" : "initial";
+
     // Upsert pf_subscriptions (user_id is UNIQUE)
     const { data: sub, error: subError } = await supabaseAdmin
       .from("pf_subscriptions")
@@ -114,7 +122,7 @@ export async function GET(request: NextRequest) {
       cod_oper: codOper,
       amount_usd: amount,
       status: "Aprobada",
-      payment_type: "initial",
+      payment_type: paymentType,
       raw_response: Object.fromEntries(searchParams.entries()),
     });
 
