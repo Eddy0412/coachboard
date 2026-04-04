@@ -87,13 +87,17 @@ export async function createPaymentLink({
     RETURN_URL: hexEncode(returnUrl),
     PARM_1: signParm(userId, interval),
     PARM_2: interval,
+    EXPIRES_IN: "691200", // 8 days in seconds — covers the 7-day reminder window
   });
 
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
   const res = await fetch(`${baseUrl}/LinkDeamon.cfm`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: body.toString(),
-  });
+    signal: controller.signal,
+  }).finally(() => clearTimeout(timeout));
 
   if (!res.ok) {
     const text = await res.text();
@@ -136,12 +140,15 @@ export async function chargeRecurrent({
   const cclw = getCCLW();
   const token = getToken();
 
+  const recurrentController = new AbortController();
+  const recurrentTimeout = setTimeout(() => recurrentController.abort(), 10000);
   const res = await fetch(`${baseUrl}/rest/processTx/RECURRENT`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: token,
     },
+    signal: recurrentController.signal,
     body: JSON.stringify({
       cclw,
       codOper,
@@ -154,6 +161,7 @@ export async function chargeRecurrent({
     }),
   });
 
+  recurrentTimeout && clearTimeout(recurrentTimeout);
   const data = await res.json();
   const status = data?.headerStatus?.code;
 
