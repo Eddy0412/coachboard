@@ -121,6 +121,7 @@ export interface Timestamp {
   distance: string | null;
   los: string | null;
   hash: string | null;
+  action: string | null;
   sort_order: number;
   created_by: string;
   created_at: string;

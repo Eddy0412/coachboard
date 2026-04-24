@@ -51,5 +51,7 @@ export const HASH_OPTIONS = [
   { value: "right", label: "Right" },
 ] as const;
 
+export const ACTION_OPTIONS = ["Run", "Pass", "Kick", "Trick"] as const;
+
 // Debounce timing for auto-save (ms)
 export const AUTOSAVE_DEBOUNCE_MS = 1000;

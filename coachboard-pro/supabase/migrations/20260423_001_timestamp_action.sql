@@ -1,0 +1,1 @@
+ALTER TABLE timestamps ADD COLUMN IF NOT EXISTS action TEXT;

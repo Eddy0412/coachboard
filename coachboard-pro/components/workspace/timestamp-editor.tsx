@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useWorkspaceStore } from "@/stores/workspace";
 import { useAutoSaveTimestamp, useDeleteTimestamp, useUpdateTimestamp } from "@/hooks/use-timestamps";
 import { formatTime } from "@/lib/youtube";
-import { ODK_OPTIONS, DOWN_OPTIONS, HASH_OPTIONS } from "@/lib/constants";
+import { ODK_OPTIONS, DOWN_OPTIONS, HASH_OPTIONS, ACTION_OPTIONS } from "@/lib/constants";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -83,7 +83,7 @@ export function TimestampEditor({
     }
   };
 
-  const handleToggle = (field: "odk" | "down" | "hash", value: string) => {
+  const handleToggle = (field: "odk" | "down" | "hash" | "action", value: string) => {
     if (!timestamp || !canEdit) return;
     const newVal = timestamp[field] === value ? null : value;
     updateTimestamp.mutate({ id: timestamp.id, [field]: newVal });
@@ -225,6 +225,29 @@ export function TimestampEditor({
               ))}
             </div>
           </div>
+
+          {/* Action */}
+          <div className="flex items-center gap-2">
+            <span className="w-12 shrink-0 text-xs text-muted">Action</span>
+            <div className="flex gap-1">
+              {ACTION_OPTIONS.map((a) => (
+                <button
+                  key={a}
+                  onClick={() => handleToggle("action", a)}
+                  disabled={!canEdit}
+                  className={cn(
+                    "rounded-lg px-2.5 py-1 text-xs font-medium transition-colors border",
+                    timestamp.action === a
+                      ? "bg-primary-bg border-primary-br text-text"
+                      : "border-border text-muted hover:text-text",
+                    !canEdit && "cursor-default opacity-70"
+                  )}
+                >
+                  {a}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       ) : (
         <Link href="/settings/billing" className="block">
@@ -253,6 +276,13 @@ export function TimestampEditor({
                 <span className="rounded-lg border border-border px-2.5 py-1 text-xs text-muted">Left</span>
                 <span className="rounded-lg border border-border px-2.5 py-1 text-xs text-muted">Middle</span>
                 <span className="rounded-lg border border-border px-2.5 py-1 text-xs text-muted">Right</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-12 shrink-0 text-xs text-muted">Action</span>
+                <span className="rounded-lg border border-border px-2.5 py-1 text-xs text-muted">Run</span>
+                <span className="rounded-lg border border-border px-2.5 py-1 text-xs text-muted">Pass</span>
+                <span className="rounded-lg border border-border px-2.5 py-1 text-xs text-muted">Kick</span>
+                <span className="rounded-lg border border-border px-2.5 py-1 text-xs text-muted">Trick</span>
               </div>
             </div>
             <div className="absolute inset-0 flex items-center justify-center">

@@ -21,6 +21,8 @@ import {
   Ticket,
   PlayCircle,
   ChevronRight,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
@@ -50,6 +52,7 @@ export function Sidebar() {
   const athleteUser = isAthlete(profile);
   const supportOpen = pathname.startsWith("/support");
   const [supportExpanded, setSupportExpanded] = useState(supportOpen);
+  const [collapsed, setCollapsed] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
@@ -57,20 +60,29 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="flex h-screen w-60 flex-col border-r border-border bg-card">
-      <div className="flex items-center gap-2 border-b border-border px-4 py-4">
-        <Image src="/logo.png" alt="Coachboard Pro logo" width={24} height={24} />
-        <Link href="/dashboard" className="text-lg font-extrabold">
-          Coachboard
-        </Link>
-        {!athleteUser && (
-          <Badge variant={profile?.subscription_status === "pro" ? "primary" : "default"}>
-            {profile?.subscription_status === "pro" ? "Pro" : "Free"}
-          </Badge>
+    <aside
+      className={cn(
+        "flex h-screen flex-col border-r border-border bg-card transition-all duration-200",
+        collapsed ? "w-16" : "w-60"
+      )}
+    >
+      <div className="flex items-center gap-2 border-b border-border px-4 py-4 min-h-[57px]">
+        <Image src="/logo.png" alt="Coachboard Pro logo" width={24} height={24} className="shrink-0" />
+        {!collapsed && (
+          <>
+            <Link href="/dashboard" className="text-lg font-extrabold truncate">
+              Coachboard
+            </Link>
+            {!athleteUser && (
+              <Badge variant={profile?.subscription_status === "pro" ? "primary" : "default"}>
+                {profile?.subscription_status === "pro" ? "Pro" : "Free"}
+              </Badge>
+            )}
+          </>
         )}
       </div>
 
-      <nav className="flex flex-1 flex-col gap-1 p-3">
+      <nav className="flex flex-1 flex-col gap-1 p-2 overflow-hidden">
         {NAV_ITEMS.filter((item) => !item.coachOnly || !athleteUser).map(
           (item) => {
             const Icon = item.icon;
@@ -81,15 +93,17 @@ export function Sidebar() {
               <Link
                 key={item.href}
                 href={item.href}
+                title={collapsed ? item.label : undefined}
                 className={cn(
                   "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors",
+                  collapsed ? "justify-center" : "",
                   isActive
                     ? "bg-primary-bg border border-primary-br text-text"
                     : "text-muted hover:text-text hover:bg-input border border-transparent"
                 )}
               >
-                <Icon className="h-4 w-4" />
-                {item.label}
+                <Icon className="h-4 w-4 shrink-0" />
+                {!collapsed && item.label}
               </Link>
             );
           }
@@ -97,24 +111,33 @@ export function Sidebar() {
 
         <button
           type="button"
-          onClick={() => setSupportExpanded((prev) => !prev)}
+          title={collapsed ? "Support" : undefined}
+          onClick={() => {
+            if (collapsed) setCollapsed(false);
+            else setSupportExpanded((prev) => !prev);
+          }}
           className={cn(
             "mt-2 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors",
+            collapsed ? "justify-center" : "",
             supportOpen
               ? "bg-primary-bg border border-primary-br text-text"
               : "text-muted hover:text-text hover:bg-input border border-transparent"
           )}
         >
-          <HelpCircle className="h-4 w-4" />
-          Support
-          <ChevronRight
-            className={cn(
-              "ml-auto h-3.5 w-3.5 transition-transform",
-              supportExpanded && "rotate-90"
-            )}
-          />
+          <HelpCircle className="h-4 w-4 shrink-0" />
+          {!collapsed && (
+            <>
+              Support
+              <ChevronRight
+                className={cn(
+                  "ml-auto h-3.5 w-3.5 transition-transform",
+                  supportExpanded && "rotate-90"
+                )}
+              />
+            </>
+          )}
         </button>
-        {supportExpanded && SUPPORT_ITEMS.map((item) => {
+        {!collapsed && supportExpanded && SUPPORT_ITEMS.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href || pathname.startsWith(item.href);
           return (
@@ -135,16 +158,39 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className="border-t border-border p-3">
-        <div className="mb-2 px-3 text-xs text-muted truncate">
-          {profile?.email}
-        </div>
+      <div className="border-t border-border p-2">
+        {!collapsed && (
+          <div className="mb-2 px-3 text-xs text-muted truncate">
+            {profile?.email}
+          </div>
+        )}
         <button
           onClick={handleSignOut}
-          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-muted hover:text-text hover:bg-input transition-colors"
+          title={collapsed ? "Sign out" : undefined}
+          className={cn(
+            "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-muted hover:text-text hover:bg-input transition-colors",
+            collapsed ? "justify-center" : ""
+          )}
         >
-          <LogOut className="h-4 w-4" />
-          Sign out
+          <LogOut className="h-4 w-4 shrink-0" />
+          {!collapsed && "Sign out"}
+        </button>
+        <button
+          onClick={() => setCollapsed((prev) => !prev)}
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          className={cn(
+            "mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-muted hover:text-text hover:bg-input transition-colors",
+            collapsed ? "justify-center" : ""
+          )}
+        >
+          {collapsed ? (
+            <PanelLeftOpen className="h-4 w-4 shrink-0" />
+          ) : (
+            <>
+              <PanelLeftClose className="h-4 w-4 shrink-0" />
+              Collapse
+            </>
+          )}
         </button>
       </div>
     </aside>
