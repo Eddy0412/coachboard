@@ -24,6 +24,7 @@ import { TimestampList } from "@/components/workspace/timestamp-list";
 import { TimestampEditor } from "@/components/workspace/timestamp-editor";
 import { AthleteTagging } from "@/components/workspace/athlete-tagging";
 import { CommentThread } from "@/components/workspace/comment-thread";
+import { CoachIQ } from "@/components/workspace/coachiq";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
@@ -279,9 +280,16 @@ export default function ProjectPage({
               canEdit={canEdit}
             />
           </div>
-          <p className="text-xs text-muted px-1 pb-1">
-            Tip: Create timestamps for key plays, tag athletes, and draw telestrations.
-          </p>
+          <div className="flex flex-col gap-2 px-1 pb-1">
+            <p className="text-xs text-muted">
+              Tip: Create timestamps for key plays, tag athletes, and draw telestrations.
+            </p>
+            <CoachIQ
+              timestamps={visibleTimestamps}
+              projectId={id}
+              teamId={project.team_id}
+            />
+          </div>
         </Card>
 
         {/* Editor panel
