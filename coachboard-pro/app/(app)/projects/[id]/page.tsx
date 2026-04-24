@@ -241,15 +241,15 @@ export default function ProjectPage({
         )}
       </div>
 
-      {/* Main 3-column layout */}
-      <div className="grid gap-4 xl:grid-cols-[340px_1fr_380px]">
-        {/* Left: Timestamp list */}
-        <Card className="flex flex-col gap-3 xl:max-h-[calc(100vh-180px)] xl:overflow-hidden">
+      {/* Main 2-column layout: timestamps left, video + editor right */}
+      <div className="grid gap-4 lg:grid-cols-[300px_1fr]">
+        {/* Left: Controls + Timestamp list */}
+        <Card className="flex flex-col gap-3 lg:h-[calc(100vh-200px)] lg:overflow-hidden">
           <VideoControls onAddTimestamp={handleAddTimestamp} canEdit={canEdit} />
           <DrawingToolbar canEdit={canEdit} teamId={project.team_id} />
           <OverlayController timestamp={selectedTimestamp} canEdit={canEdit} />
           <div className="border-t border-border pt-2" />
-          <div className="flex-1 overflow-auto">
+          <div className="flex-1 overflow-auto min-h-0">
             <TimestampList
               timestamps={visibleTimestamps}
               athletes={athletes}
@@ -261,50 +261,50 @@ export default function ProjectPage({
           </div>
         </Card>
 
-        {/* Center: Video + canvas */}
-        <Card className="flex flex-col gap-3">
-          <div className="relative">
-            <VideoPlayer videoId={project.youtube_id} />
-            <TelestrationCanvas
-              timestampId={selectedTimestampId}
+        {/* Right: Video (top) + Editor panel (below, scrollable) */}
+        <div className="flex flex-col gap-4 lg:h-[calc(100vh-200px)] lg:overflow-hidden">
+          {/* Video + canvas */}
+          <Card className="flex-shrink-0 flex flex-col gap-2">
+            <div className="relative">
+              <VideoPlayer videoId={project.youtube_id} />
+              <TelestrationCanvas
+                timestampId={selectedTimestampId}
+                canEdit={canEdit}
+              />
+            </div>
+            <p className="text-xs text-muted px-1 pb-1">
+              Tip: Create timestamps for key plays, tag athletes, and draw telestrations.
+            </p>
+          </Card>
+
+          {/* Editor + Tagging + Comments — scrollable */}
+          <Card className="flex flex-col gap-4 flex-1 overflow-auto min-h-0">
+            <TimestampEditor
+              timestamp={selectedTimestamp}
+              projectId={id}
               canEdit={canEdit}
+              onSeek={handleSeek}
+              teamId={project.team_id}
             />
-          </div>
-          <div className="flex items-center gap-2 text-xs text-muted">
-            <span>
-              Tip: Create timestamps for key plays, tag athletes, and draw
-              telestrations.
-            </span>
-          </div>
-        </Card>
 
-        {/* Right: Editor panel */}
-        <Card className="flex flex-col gap-4 xl:max-h-[calc(100vh-180px)] xl:overflow-auto">
-          <TimestampEditor
-            timestamp={selectedTimestamp}
-            projectId={id}
-            canEdit={canEdit}
-            onSeek={handleSeek}
-            teamId={project.team_id}
-          />
+            <div className="border-t border-border pt-2" />
 
-          <div className="border-t border-border pt-2" />
+            <AthleteTagging
+              timestampId={selectedTimestampId}
+              athletes={athletes}
+              taggedAthleteIds={selectedTimestampAthletes}
+              canEdit={canEdit}
+              projectId={id}
+              projectTitle={project?.title}
+              timestampTitle={selectedTimestamp?.title}
+              taggedByName={profile?.full_name || user?.email || "Your coach"}
+            />
 
-          <AthleteTagging
-            timestampId={selectedTimestampId}
-            athletes={athletes}
-            taggedAthleteIds={selectedTimestampAthletes}
-            canEdit={canEdit}
-            projectId={id}
-            projectTitle={project?.title}
-            timestampTitle={selectedTimestamp?.title}
-            taggedByName={profile?.full_name || user?.email || "Your coach"}
-          />
+            <div className="border-t border-border pt-2" />
 
-          <div className="border-t border-border pt-2" />
-
-          <CommentThread timestampId={selectedTimestampId} isTeamMember={!!teamMember} teamId={project.team_id} />
-        </Card>
+            <CommentThread timestampId={selectedTimestampId} isTeamMember={!!teamMember} teamId={project.team_id} />
+          </Card>
+        </div>
       </div>
     </div>
   );
