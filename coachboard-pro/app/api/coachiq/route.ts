@@ -17,32 +17,51 @@ function computeStats(timestamps: Timestamp[]) {
   const count = (field: keyof Timestamp, value: string) =>
     plays.filter((t) => t[field] === value).length;
 
-  const pct = (n: number) => Math.round((n / total) * 100);
+  const pct = (n: number, base: number) => Math.round((n / (base || 1)) * 100);
+
+  // Action breakdown per down — only included when >= 5 tagged plays on that down
+  const MIN_PLAYS_FOR_BREAKDOWN = 5;
+  const downs = ["1st", "2nd", "3rd", "4th"] as const;
+  const actionByDown: Record<string, { total: number; run: number; pass: number; kick: number; trick: number }> = {};
+  for (const d of downs) {
+    const downPlays = plays.filter((t) => t.down === d && t.action);
+    if (downPlays.length >= MIN_PLAYS_FOR_BREAKDOWN) {
+      const n = downPlays.length;
+      actionByDown[d] = {
+        total: n,
+        run: pct(downPlays.filter((t) => t.action === "Run").length, n),
+        pass: pct(downPlays.filter((t) => t.action === "Pass").length, n),
+        kick: pct(downPlays.filter((t) => t.action === "Kick").length, n),
+        trick: pct(downPlays.filter((t) => t.action === "Trick").length, n),
+      };
+    }
+  }
 
   return {
     totalTaggedPlays: plays.length,
     odk: {
-      offense: pct(count("odk", "offense")),
-      defense: pct(count("odk", "defense")),
-      specialTeams: pct(count("odk", "kicking")),
+      offense: pct(count("odk", "offense"), total),
+      defense: pct(count("odk", "defense"), total),
+      specialTeams: pct(count("odk", "kicking"), total),
     },
     action: {
-      run: pct(count("action", "Run")),
-      pass: pct(count("action", "Pass")),
-      kick: pct(count("action", "Kick")),
-      trick: pct(count("action", "Trick")),
+      run: pct(count("action", "Run"), total),
+      pass: pct(count("action", "Pass"), total),
+      kick: pct(count("action", "Kick"), total),
+      trick: pct(count("action", "Trick"), total),
     },
     hash: {
-      left: pct(count("hash", "left")),
-      middle: pct(count("hash", "middle")),
-      right: pct(count("hash", "right")),
+      left: pct(count("hash", "left"), total),
+      middle: pct(count("hash", "middle"), total),
+      right: pct(count("hash", "right"), total),
     },
     down: {
-      first: pct(count("down", "1st")),
-      second: pct(count("down", "2nd")),
-      third: pct(count("down", "3rd")),
-      fourth: pct(count("down", "4th")),
+      first: pct(count("down", "1st"), total),
+      second: pct(count("down", "2nd"), total),
+      third: pct(count("down", "3rd"), total),
+      fourth: pct(count("down", "4th"), total),
     },
+    actionByDown,
   };
 }
 

@@ -272,15 +272,15 @@ export default function ProjectPage({
         </Card>
 
         {/* Col 2 / row 1: Video + canvas (same position at both breakpoints) */}
-        <Card className="flex-shrink-0 flex flex-col gap-2 lg:col-start-2 lg:row-start-1 xl:col-start-2 xl:row-start-1">
-          <div className="relative">
+        <Card className="flex flex-col gap-2 lg:col-start-2 lg:row-start-1 xl:col-start-2 xl:row-start-1 xl:max-h-[calc(100vh-180px)]">
+          <div className="relative flex-shrink-0">
             <VideoPlayer videoId={project.youtube_id} />
             <TelestrationCanvas
               timestampId={selectedTimestampId}
               canEdit={canEdit}
             />
           </div>
-          <div className="flex flex-col gap-2 px-1 pb-1">
+          <div className="flex flex-col gap-2 px-1 pb-1 flex-1 overflow-hidden min-h-0">
             <p className="text-xs text-muted">
               Tip: Create timestamps for key plays, tag athletes, and draw telestrations.
             </p>

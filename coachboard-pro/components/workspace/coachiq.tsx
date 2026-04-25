@@ -82,7 +82,7 @@ export function CoachIQ({
           </button>
         </div>
         {expanded && (
-          <div className="rounded-xl border border-border bg-input/30 p-4 text-sm max-h-64 overflow-y-auto">
+          <div className="rounded-xl border border-border bg-input/30 p-4 text-sm flex-1 overflow-y-auto min-h-0">
             <pre className="whitespace-pre-wrap font-sans leading-relaxed text-text">{report}</pre>
           </div>
         )}
@@ -159,7 +159,7 @@ export function CoachIQ({
   };
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2 flex-1 overflow-hidden min-h-0">
       {/* Button row */}
       <div className="flex items-center gap-2 flex-wrap">
         <div className="relative">
@@ -240,7 +240,7 @@ export function CoachIQ({
       {(report || error) && expanded && (
         <div
           className={cn(
-            "rounded-xl border p-4 text-sm max-h-64 overflow-y-auto",
+            "rounded-xl border p-4 text-sm flex-1 overflow-y-auto min-h-0",
             error
               ? "border-danger-br bg-danger/5 text-danger"
               : "border-border bg-input/30"
