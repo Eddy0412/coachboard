@@ -288,6 +288,17 @@ export default function ProjectPage({
               timestamps={visibleTimestamps}
               projectId={id}
               teamId={project.team_id}
+              canEdit={canEdit}
+              initialReport={project.coachiq_report}
+              initialVisibility={project.coachiq_report_visibility ?? "coach_only"}
+              initialGeneratedAt={project.coachiq_report_generated_at}
+              onSave={async (report, visibility) => {
+                await supabase.from("projects").update({
+                  coachiq_report: report,
+                  coachiq_report_visibility: visibility,
+                  coachiq_report_generated_at: new Date().toISOString(),
+                }).eq("id", id);
+              }}
             />
           </div>
         </Card>

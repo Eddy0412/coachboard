@@ -82,6 +82,9 @@ export interface Project {
   youtube_id: string;
   category: ProjectCategory;
   created_by: string;
+  coachiq_report: string | null;
+  coachiq_report_visibility: "coach_only" | "team";
+  coachiq_report_generated_at: string | null;
   created_at: string;
   updated_at: string;
 }
