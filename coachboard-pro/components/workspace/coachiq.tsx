@@ -37,7 +37,8 @@ export function CoachIQ({ timestamps, projectId, teamId }: CoachIQProps) {
       });
 
       if (!res.ok) {
-        setError("Analysis failed. Make sure timestamps have ODK/Action data.");
+        const text = await res.text().catch(() => "");
+        setError(`Analysis failed (${res.status})${text ? `: ${text}` : ". Check server logs."}`);
         setLoading(false);
         return;
       }

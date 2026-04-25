@@ -56,6 +56,10 @@ export async function POST(req: NextRequest) {
     return new Response("No timestamps to analyze.", { status: 400 });
   }
 
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return new Response("ANTHROPIC_API_KEY is not configured.", { status: 500 });
+  }
+
   const supabase = getSupabaseAdmin();
 
   // Fetch all comments for these timestamps
