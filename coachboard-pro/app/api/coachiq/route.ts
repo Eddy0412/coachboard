@@ -153,23 +153,15 @@ Be specific and use percentages. Reference actual plays from the data where rele
 
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-  const stream = anthropic.messages.stream({
-    model: "claude-opus-4-7",
-    max_tokens: 4096,
-    thinking: { type: "adaptive" },
-    system: [
-      {
-        type: "text",
-        text: systemPrompt,
-        cache_control: { type: "ephemeral" },
-      },
-    ],
-    messages: [{ role: "user", content: userPrompt }],
-  });
-
   const readable = new ReadableStream({
     async start(controller) {
       try {
+        const stream = anthropic.messages.stream({
+          model: "claude-opus-4-7",
+          max_tokens: 4096,
+          system: systemPrompt,
+          messages: [{ role: "user", content: userPrompt }],
+        });
         for await (const event of stream) {
           if (
             event.type === "content_block_delta" &&
@@ -179,8 +171,10 @@ Be specific and use percentages. Reference actual plays from the data where rele
           }
         }
         controller.close();
-      } catch (err) {
-        controller.error(err);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        controller.enqueue(new TextEncoder().encode(`\n\n[ERROR: ${msg}]`));
+        controller.close();
       }
     },
   });
