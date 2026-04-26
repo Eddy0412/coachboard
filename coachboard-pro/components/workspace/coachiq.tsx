@@ -57,10 +57,13 @@ export function CoachIQ({
   const [expanded, setExpanded] = useState(!!initialReport);
   const [visibility, setVisibility] = useState<Visibility>(initialVisibility);
   const [saving, setSaving] = useState(false);
+  const [confirming, setConfirming] = useState(false);
 
+  const MIN_TAGGED = 20;
   const taggedCount = timestamps.filter((t) => t.odk || t.action).length;
+  const hasEnough = taggedCount >= MIN_TAGGED;
   // Pulse when coach has 20+ tagged plays and no report yet
-  const shouldPulse = canEdit && isPro && taggedCount >= 20 && !report && !loading;
+  const shouldPulse = canEdit && isPro && hasEnough && !report && !loading;
 
   // Athletes: show report only if visibility is "team"
   if (!canEdit) {
@@ -105,6 +108,7 @@ export function CoachIQ({
   }
 
   const analyze = async () => {
+    setConfirming(false);
     setLoading(true);
     setReport("");
     setError("");
@@ -169,8 +173,14 @@ export function CoachIQ({
           <Button
             variant="primary"
             size="sm"
-            onClick={analyze}
-            disabled={loading || taggedCount === 0}
+            onClick={() => {
+              if (report && !confirming) {
+                setConfirming(true);
+              } else {
+                analyze();
+              }
+            }}
+            disabled={loading || !hasEnough}
             className="gap-1.5 relative"
           >
             {loading ? (
@@ -182,16 +192,20 @@ export function CoachIQ({
           </Button>
         </div>
 
-        {taggedCount === 0 && (
-          <span className="text-xs text-muted">Tag plays with ODK or Action to enable</span>
+        {!hasEnough && (
+          <span className="text-xs text-muted">
+            {taggedCount === 0
+              ? "Tag plays with ODK or Action to enable"
+              : `${taggedCount}/20 tagged plays — need ${MIN_TAGGED - taggedCount} more`}
+          </span>
         )}
 
-        {generatedAt && !loading && (
+        {generatedAt && !loading && !confirming && (
           <span className="text-xs text-muted">Last analyzed: {formatDate(generatedAt)}</span>
         )}
         {saving && <span className="text-xs text-muted">Saving…</span>}
 
-        {report && !loading && (
+        {report && !loading && !confirming && (
           <button
             onClick={() => setExpanded((v) => !v)}
             className="ml-auto flex items-center gap-1 text-xs text-muted hover:text-text transition-colors"
@@ -204,6 +218,27 @@ export function CoachIQ({
           </button>
         )}
       </div>
+
+      {/* Re-run confirmation */}
+      {confirming && (
+        <div className="flex items-center gap-2 rounded-lg border border-warning-br bg-warning/10 px-3 py-2 text-xs">
+          <span className="text-text flex-1">
+            Report from {formatDate(generatedAt)} already exists. Re-run and replace it?
+          </span>
+          <button
+            onClick={analyze}
+            className="font-semibold text-warning hover:text-text transition-colors"
+          >
+            Re-run
+          </button>
+          <button
+            onClick={() => setConfirming(false)}
+            className="text-muted hover:text-text transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
 
       {/* Visibility toggle — shown when a report exists */}
       {report && !loading && (
