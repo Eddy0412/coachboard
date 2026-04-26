@@ -153,7 +153,7 @@ export default function InvitePage({
               lockedRole={invitation.role === "athlete" ? "athlete" : undefined}
             />
           ) : (
-            <LoginForm />
+            <LoginForm onSuccess={() => {}} />
           )}
         </Card>
       </div>
