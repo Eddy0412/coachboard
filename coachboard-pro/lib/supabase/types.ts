@@ -18,6 +18,7 @@ export interface Profile {
   subscription_status: SubscriptionStatus;
   stripe_subscription_id: string | null;
   payment_provider: PaymentProvider;
+  grandfathered: boolean;
   created_at: string;
   updated_at: string;
 }

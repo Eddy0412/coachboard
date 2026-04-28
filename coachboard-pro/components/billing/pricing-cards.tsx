@@ -173,7 +173,7 @@ export function PricingCards() {
 
       {paymentMethod === "yappy" && (
         <p className="text-xs text-muted">
-          Yappy is available for the yearly plan only ($240/yr). Click the yearly button to submit a payment request.
+          Yappy is available for the yearly plan only ($299/yr). Click the yearly button to submit a payment request.
         </p>
       )}
 
@@ -211,9 +211,9 @@ export function PricingCards() {
               </Badge>
             </div>
             <p className="text-2xl font-extrabold">
-              $24<span className="text-sm font-normal text-muted">/month</span>
+              $39<span className="text-sm font-normal text-muted">/month</span>
             </p>
-            <p className="text-xs text-muted">or $240/year (save 17%)</p>
+            <p className="text-xs text-muted">or $299/year (save 36%)</p>
           </div>
           <ul className="flex flex-1 flex-col gap-2">
             {PRO_FEATURES.map((f) => (
@@ -232,14 +232,14 @@ export function PricingCards() {
                 onClick={() => handleUpgrade("monthly")}
                 disabled={loading !== null}
               >
-                {loading === "monthly" ? "Redirecting..." : "Upgrade — $24/mo"}
+                {loading === "monthly" ? "Redirecting..." : "Upgrade — $39/mo"}
               </Button>
               <Button
                 variant="default"
                 onClick={() => handleUpgrade("yearly")}
                 disabled={loading !== null}
               >
-                {loading === "yearly" ? "Redirecting..." : "Upgrade — $240/yr"}
+                {loading === "yearly" ? "Redirecting..." : "Upgrade — $299/yr"}
               </Button>
             </div>
           )}
@@ -250,7 +250,7 @@ export function PricingCards() {
               variant="primary"
               onClick={() => setYappyOpen(true)}
             >
-              Upgrade — $240/yr
+              Upgrade — $299/yr
             </Button>
           )}
         </Card>
@@ -293,7 +293,7 @@ export function PricingCards() {
             </DialogTitle>
             {!yappySubmitted && (
               <DialogDescription>
-                Pro Annual Plan — $240/yr. Submit your details and we&apos;ll process
+                Pro Annual Plan — $299/yr. Submit your details and we&apos;ll process
                 your Yappy payment within 24 hours.
               </DialogDescription>
             )}
@@ -303,7 +303,7 @@ export function PricingCards() {
             <div className="flex flex-col items-center gap-4 py-4 text-center">
               <CheckCircle className="h-10 w-10 text-success" />
               <p className="text-sm text-muted">
-                We&apos;ve received your Yappy payment request for the <strong>Pro Annual Plan ($240/yr)</strong>.
+                We&apos;ve received your Yappy payment request for the <strong>Pro Annual Plan ($299/yr)</strong>.
                 We&apos;ll process your payment and activate your account within 24 hours.
               </p>
               <Button variant="primary" onClick={resetYappy}>

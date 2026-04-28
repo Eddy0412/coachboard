@@ -100,6 +100,12 @@ export default function BillingPage() {
         </div>
       </Card>
 
+      {isPro && profile?.grandfathered && (
+        <div className="rounded-md border border-success/30 bg-success/5 p-3 text-sm text-success">
+          🔒 You&apos;re on <strong>grandfathered pricing</strong> — your rate is locked in for life as a founding member. New subscribers pay $39/mo or $299/yr.
+        </div>
+      )}
+
       {isPro && hasPfSubscription && pfSub && (
         <PfSubscriptionCard subscription={pfSub} provider={paymentProvider as "paguelofacil" | "yappy"} />
       )}

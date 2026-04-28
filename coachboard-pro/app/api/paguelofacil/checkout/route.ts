@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const amount = interval === "yearly" ? 240 : 24;
+    const amount = interval === "yearly" ? 299 : 39;
     const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
     const returnUrl = `${APP_URL}/api/paguelofacil/callback`;
 
