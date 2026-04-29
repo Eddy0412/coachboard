@@ -272,50 +272,132 @@ export default function ProjectPage({
         </div>
       </div>
 
-      {/* Workspace grid — layout toggles between balanced (3-col) and video-focus (video full-width top) */}
-      <div className={cn("grid gap-4", layout === "balanced"
-        ? "lg:grid-cols-[300px_1fr] lg:[grid-template-rows:auto_1fr] lg:h-[calc(100vh-200px)] xl:grid-cols-[340px_1fr_380px] xl:[grid-template-rows:auto] xl:h-auto"
-        : "sm:grid-cols-[300px_1fr] sm:[grid-template-rows:auto_1fr] sm:h-[calc(100vh-180px)]"
-      )}>
+      {layout === "balanced" ? (
+        /*
+          BALANCED: timestamps | video | editor
+          lg: 2-col (timestamps spans 2 rows), xl: 3-col side-by-side
+        */
+        <div className="grid gap-4
+          lg:grid-cols-[300px_1fr] lg:[grid-template-rows:auto_1fr] lg:h-[calc(100vh-200px)]
+          xl:grid-cols-[340px_1fr_380px] xl:[grid-template-rows:auto] xl:h-auto">
 
-        {/* Col 1: Controls + Timestamp list
-            lg: spans both rows | xl: single row with max-height */}
-        <Card className={cn("flex flex-col gap-3 overflow-hidden", layout === "balanced"
-          ? "lg:row-span-2 xl:row-span-1 xl:max-h-[calc(100vh-180px)]"
-          : "sm:col-start-1 sm:row-start-2 sm:max-h-full sm:overflow-hidden"
-        )}>
-          <VideoControls onAddTimestamp={handleAddTimestamp} canEdit={canEdit} />
-          <DrawingToolbar canEdit={canEdit} teamId={project.team_id} />
-          <OverlayController timestamp={selectedTimestamp} canEdit={canEdit} />
-          <div className="border-t border-border pt-2" />
-          <div className="flex-1 overflow-auto min-h-0">
-            <TimestampList
-              timestamps={visibleTimestamps}
-              athletes={athletes}
-              timestampAthletes={timestampAthletesMap}
-              onSelect={(tsId) => setSelectedTimestamp(tsId)}
-              onSeek={handleSeek}
-              teamId={project.team_id}
-            />
-          </div>
-        </Card>
+          <Card className="flex flex-col gap-3 overflow-hidden lg:row-span-2 xl:row-span-1 xl:max-h-[calc(100vh-180px)]">
+            <VideoControls onAddTimestamp={handleAddTimestamp} canEdit={canEdit} />
+            <DrawingToolbar canEdit={canEdit} teamId={project.team_id} />
+            <OverlayController timestamp={selectedTimestamp} canEdit={canEdit} />
+            <div className="border-t border-border pt-2" />
+            <div className="flex-1 overflow-auto min-h-0">
+              <TimestampList
+                timestamps={visibleTimestamps}
+                athletes={athletes}
+                timestampAthletes={timestampAthletesMap}
+                onSelect={(tsId) => setSelectedTimestamp(tsId)}
+                onSeek={handleSeek}
+                teamId={project.team_id}
+              />
+            </div>
+          </Card>
 
-        {/* Col 2 / row 1: Video + canvas */}
-        <Card className={cn("flex flex-col gap-2", layout === "balanced"
-          ? "lg:col-start-2 lg:row-start-1 xl:col-start-2 xl:row-start-1 xl:max-h-[calc(100vh-180px)]"
-          : "sm:col-span-2 sm:row-start-1"
-        )}>
-          <div className="relative flex-shrink-0">
-            <VideoPlayer videoId={project.youtube_id} />
-            <TelestrationCanvas
+          <Card className="flex flex-col gap-2 lg:col-start-2 lg:row-start-1 xl:col-start-2 xl:row-start-1 xl:max-h-[calc(100vh-180px)]">
+            <div className="relative flex-shrink-0">
+              <VideoPlayer videoId={project.youtube_id} />
+              <TelestrationCanvas timestampId={selectedTimestampId} canEdit={canEdit} />
+            </div>
+            <div className="flex flex-col gap-2 px-1 pb-1 flex-1 overflow-hidden min-h-0">
+              <p className="text-xs text-muted">
+                Tip: Create timestamps for key plays, tag athletes, and draw telestrations.
+              </p>
+              <CoachIQ
+                timestamps={visibleTimestamps}
+                projectId={id}
+                teamId={project.team_id}
+                canEdit={canEdit}
+                initialReport={project.coachiq_report}
+                initialVisibility={project.coachiq_report_visibility ?? "coach_only"}
+                initialGeneratedAt={project.coachiq_report_generated_at}
+                onSave={async (report, visibility) => {
+                  await supabase.from("projects").update({
+                    coachiq_report: report,
+                    coachiq_report_visibility: visibility,
+                    coachiq_report_generated_at: new Date().toISOString(),
+                  }).eq("id", id);
+                }}
+              />
+            </div>
+          </Card>
+
+          <Card className="flex flex-col gap-4 overflow-auto min-h-0 lg:col-start-2 lg:row-start-2 xl:col-start-3 xl:row-start-1 xl:max-h-[calc(100vh-180px)]">
+            <TimestampEditor timestamp={selectedTimestamp} projectId={id} canEdit={canEdit} onSeek={handleSeek} teamId={project.team_id} />
+            <div className="border-t border-border pt-2" />
+            <AthleteTagging
               timestampId={selectedTimestampId}
+              athletes={athletes}
+              taggedAthleteIds={selectedTimestampAthletes}
               canEdit={canEdit}
+              projectId={id}
+              projectTitle={project?.title}
+              timestampTitle={selectedTimestamp?.title}
+              taggedByName={profile?.full_name || user?.email || "Your coach"}
             />
+            <div className="border-t border-border pt-2" />
+            <CommentThread timestampId={selectedTimestampId} isTeamMember={!!teamMember} teamId={project.team_id} />
+          </Card>
+        </div>
+      ) : (
+        /*
+          VIDEO FOCUS:
+          Row 1 — video full width
+          Row 2 — timestamps (left, compact) | editor/ODK/comments (right, compact)
+          Row 3 — CoachIQ full width
+        */
+        <div className="flex flex-col gap-4">
+          {/* Row 1: Video */}
+          <Card className="flex-shrink-0">
+            <div className="relative">
+              <VideoPlayer videoId={project.youtube_id} />
+              <TelestrationCanvas timestampId={selectedTimestampId} canEdit={canEdit} />
+            </div>
+          </Card>
+
+          {/* Row 2: Timestamps + Editor side by side, compact */}
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-[300px_1fr]">
+            <Card className="flex flex-col gap-3 overflow-hidden max-h-[300px]">
+              <VideoControls onAddTimestamp={handleAddTimestamp} canEdit={canEdit} />
+              <DrawingToolbar canEdit={canEdit} teamId={project.team_id} />
+              <OverlayController timestamp={selectedTimestamp} canEdit={canEdit} />
+              <div className="border-t border-border pt-2" />
+              <div className="flex-1 overflow-auto min-h-0">
+                <TimestampList
+                  timestamps={visibleTimestamps}
+                  athletes={athletes}
+                  timestampAthletes={timestampAthletesMap}
+                  onSelect={(tsId) => setSelectedTimestamp(tsId)}
+                  onSeek={handleSeek}
+                  teamId={project.team_id}
+                />
+              </div>
+            </Card>
+
+            <Card className="flex flex-col gap-4 overflow-auto max-h-[300px]">
+              <TimestampEditor timestamp={selectedTimestamp} projectId={id} canEdit={canEdit} onSeek={handleSeek} teamId={project.team_id} />
+              <div className="border-t border-border pt-2" />
+              <AthleteTagging
+                timestampId={selectedTimestampId}
+                athletes={athletes}
+                taggedAthleteIds={selectedTimestampAthletes}
+                canEdit={canEdit}
+                projectId={id}
+                projectTitle={project?.title}
+                timestampTitle={selectedTimestamp?.title}
+                taggedByName={profile?.full_name || user?.email || "Your coach"}
+              />
+              <div className="border-t border-border pt-2" />
+              <CommentThread timestampId={selectedTimestampId} isTeamMember={!!teamMember} teamId={project.team_id} />
+            </Card>
           </div>
-          <div className="flex flex-col gap-2 px-1 pb-1 flex-1 overflow-hidden min-h-0">
-            <p className="text-xs text-muted">
-              Tip: Create timestamps for key plays, tag athletes, and draw telestrations.
-            </p>
+
+          {/* Row 3: CoachIQ full width */}
+          <Card className="flex flex-col gap-2 px-1 pb-1">
             <CoachIQ
               timestamps={visibleTimestamps}
               projectId={id}
@@ -332,40 +414,9 @@ export default function ProjectPage({
                 }).eq("id", id);
               }}
             />
-          </div>
-        </Card>
-
-        {/* Editor panel */}
-        <Card className={cn("flex flex-col gap-4 overflow-auto min-h-0", layout === "balanced"
-          ? "lg:col-start-2 lg:row-start-2 xl:col-start-3 xl:row-start-1 xl:max-h-[calc(100vh-180px)]"
-          : "sm:col-start-2 sm:row-start-2"
-        )}>
-          <TimestampEditor
-            timestamp={selectedTimestamp}
-            projectId={id}
-            canEdit={canEdit}
-            onSeek={handleSeek}
-            teamId={project.team_id}
-          />
-
-          <div className="border-t border-border pt-2" />
-
-          <AthleteTagging
-            timestampId={selectedTimestampId}
-            athletes={athletes}
-            taggedAthleteIds={selectedTimestampAthletes}
-            canEdit={canEdit}
-            projectId={id}
-            projectTitle={project?.title}
-            timestampTitle={selectedTimestamp?.title}
-            taggedByName={profile?.full_name || user?.email || "Your coach"}
-          />
-
-          <div className="border-t border-border pt-2" />
-
-          <CommentThread timestampId={selectedTimestampId} isTeamMember={!!teamMember} teamId={project.team_id} />
-        </Card>
-      </div>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
