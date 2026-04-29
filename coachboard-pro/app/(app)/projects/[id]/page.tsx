@@ -345,75 +345,73 @@ export default function ProjectPage({
         </div>
       ) : (
         /*
-          VIDEO FOCUS:
-          Row 1 — video full width
-          Row 2 — timestamps (left, compact) | editor/ODK/comments (right, compact)
-          Row 3 — CoachIQ full width
+          VIDEO FOCUS — everything on screen, no scrolling needed:
+          Left col (wider): video at top (16:9) + CoachIQ scrollable below
+          Right col (360px): timestamps (top half) + editor/ODK/comments (bottom half)
         */
-        <div className="flex flex-col gap-4">
-          {/* Row 1: Video */}
-          <Card className="flex-shrink-0">
-            <div className="relative">
+        <div className="grid gap-4 h-[calc(100vh-180px)]"
+          style={{ gridTemplateColumns: "1fr 360px", gridTemplateRows: "1fr 1fr" }}>
+
+          {/* Left col, spans both rows: video + CoachIQ */}
+          <Card className="flex flex-col gap-2 row-span-2 min-h-0 overflow-hidden">
+            <div className="relative flex-shrink-0">
               <VideoPlayer videoId={project.youtube_id} />
               <TelestrationCanvas timestampId={selectedTimestampId} canEdit={canEdit} />
             </div>
+            <div className="flex flex-col gap-2 px-1 pb-1 flex-1 overflow-hidden min-h-0">
+              <CoachIQ
+                timestamps={visibleTimestamps}
+                projectId={id}
+                teamId={project.team_id}
+                canEdit={canEdit}
+                initialReport={project.coachiq_report}
+                initialVisibility={project.coachiq_report_visibility ?? "coach_only"}
+                initialGeneratedAt={project.coachiq_report_generated_at}
+                onSave={async (report, visibility) => {
+                  await supabase.from("projects").update({
+                    coachiq_report: report,
+                    coachiq_report_visibility: visibility,
+                    coachiq_report_generated_at: new Date().toISOString(),
+                  }).eq("id", id);
+                }}
+              />
+            </div>
           </Card>
 
-          {/* Row 2: Timestamps + Editor side by side, compact */}
-          <div className="grid gap-4 grid-cols-1 sm:grid-cols-[300px_1fr]">
-            <Card className="flex flex-col gap-3 overflow-hidden max-h-[300px]">
-              <VideoControls onAddTimestamp={handleAddTimestamp} canEdit={canEdit} />
-              <DrawingToolbar canEdit={canEdit} teamId={project.team_id} />
-              <OverlayController timestamp={selectedTimestamp} canEdit={canEdit} />
-              <div className="border-t border-border pt-2" />
-              <div className="flex-1 overflow-auto min-h-0">
-                <TimestampList
-                  timestamps={visibleTimestamps}
-                  athletes={athletes}
-                  timestampAthletes={timestampAthletesMap}
-                  onSelect={(tsId) => setSelectedTimestamp(tsId)}
-                  onSeek={handleSeek}
-                  teamId={project.team_id}
-                />
-              </div>
-            </Card>
-
-            <Card className="flex flex-col gap-4 overflow-auto max-h-[300px]">
-              <TimestampEditor timestamp={selectedTimestamp} projectId={id} canEdit={canEdit} onSeek={handleSeek} teamId={project.team_id} />
-              <div className="border-t border-border pt-2" />
-              <AthleteTagging
-                timestampId={selectedTimestampId}
+          {/* Right col, row 1: Timestamps */}
+          <Card className="flex flex-col gap-3 overflow-hidden min-h-0 col-start-2 row-start-1">
+            <VideoControls onAddTimestamp={handleAddTimestamp} canEdit={canEdit} />
+            <DrawingToolbar canEdit={canEdit} teamId={project.team_id} />
+            <OverlayController timestamp={selectedTimestamp} canEdit={canEdit} />
+            <div className="border-t border-border pt-2" />
+            <div className="flex-1 overflow-auto min-h-0">
+              <TimestampList
+                timestamps={visibleTimestamps}
                 athletes={athletes}
-                taggedAthleteIds={selectedTimestampAthletes}
-                canEdit={canEdit}
-                projectId={id}
-                projectTitle={project?.title}
-                timestampTitle={selectedTimestamp?.title}
-                taggedByName={profile?.full_name || user?.email || "Your coach"}
+                timestampAthletes={timestampAthletesMap}
+                onSelect={(tsId) => setSelectedTimestamp(tsId)}
+                onSeek={handleSeek}
+                teamId={project.team_id}
               />
-              <div className="border-t border-border pt-2" />
-              <CommentThread timestampId={selectedTimestampId} isTeamMember={!!teamMember} teamId={project.team_id} />
-            </Card>
-          </div>
+            </div>
+          </Card>
 
-          {/* Row 3: CoachIQ full width */}
-          <Card className="flex flex-col gap-2 px-1 pb-1">
-            <CoachIQ
-              timestamps={visibleTimestamps}
-              projectId={id}
-              teamId={project.team_id}
+          {/* Right col, row 2: Editor / ODK / Comments */}
+          <Card className="flex flex-col gap-4 overflow-auto min-h-0 col-start-2 row-start-2">
+            <TimestampEditor timestamp={selectedTimestamp} projectId={id} canEdit={canEdit} onSeek={handleSeek} teamId={project.team_id} />
+            <div className="border-t border-border pt-2" />
+            <AthleteTagging
+              timestampId={selectedTimestampId}
+              athletes={athletes}
+              taggedAthleteIds={selectedTimestampAthletes}
               canEdit={canEdit}
-              initialReport={project.coachiq_report}
-              initialVisibility={project.coachiq_report_visibility ?? "coach_only"}
-              initialGeneratedAt={project.coachiq_report_generated_at}
-              onSave={async (report, visibility) => {
-                await supabase.from("projects").update({
-                  coachiq_report: report,
-                  coachiq_report_visibility: visibility,
-                  coachiq_report_generated_at: new Date().toISOString(),
-                }).eq("id", id);
-              }}
+              projectId={id}
+              projectTitle={project?.title}
+              timestampTitle={selectedTimestamp?.title}
+              taggedByName={profile?.full_name || user?.email || "Your coach"}
             />
+            <div className="border-t border-border pt-2" />
+            <CommentThread timestampId={selectedTimestampId} isTeamMember={!!teamMember} teamId={project.team_id} />
           </Card>
         </div>
       )}
