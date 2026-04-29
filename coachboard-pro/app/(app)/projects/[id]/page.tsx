@@ -29,7 +29,9 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Settings } from "lucide-react";
+import { Columns3, LayoutPanelTop, Settings } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useWorkspaceLayout } from "@/hooks/use-workspace-layout";
 
 import type { Athlete, ProjectAccess, TeamMember, TimestampAthlete } from "@/lib/supabase/types";
 
@@ -44,6 +46,8 @@ export default function ProjectPage({
   const { selectedTimestampId, setSelectedTimestamp, setStatus, currentTime, setOverlayVisible } =
     useWorkspaceStore();
   const { getCurrentTime, seekTo } = useYouTubePlayer("yt-player");
+
+  const { layout, setLayout } = useWorkspaceLayout();
 
   const { data: project, isLoading: projectLoading } = useProject(id);
   const { data: timestamps = [] } = useTimestamps(id);
@@ -232,29 +236,54 @@ export default function ProjectPage({
             <p className="text-sm text-muted">{project.description}</p>
           )}
         </div>
-        {canEdit && (
-          <Link href={`/projects/${id}/settings`}>
-            <Button variant="ghost" size="sm">
-              <Settings className="h-4 w-4" />
-              Settings
-            </Button>
-          </Link>
-        )}
+        <div className="flex items-center gap-2">
+          {/* Layout toggle */}
+          <div className="flex items-center rounded-lg border border-border p-1 gap-0.5">
+            <button
+              onClick={() => setLayout("balanced")}
+              title="Balanced layout"
+              className={cn(
+                "rounded p-1.5 transition-colors",
+                layout === "balanced" ? "bg-primary-bg text-primary" : "text-muted hover:text-text"
+              )}
+            >
+              <Columns3 className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setLayout("video-focus")}
+              title="Video focus"
+              className={cn(
+                "rounded p-1.5 transition-colors",
+                layout === "video-focus" ? "bg-primary-bg text-primary" : "text-muted hover:text-text"
+              )}
+            >
+              <LayoutPanelTop className="h-4 w-4" />
+            </button>
+          </div>
+
+          {canEdit && (
+            <Link href={`/projects/${id}/settings`}>
+              <Button variant="ghost" size="sm">
+                <Settings className="h-4 w-4" />
+                Settings
+              </Button>
+            </Link>
+          )}
+        </div>
       </div>
 
-      {/* Workspace grid
-           Mobile:  single column stack
-           iPad lg: 2-col — timestamps left (row-span-2), video top-right, editor bottom-right
-           Desktop xl: 3-col — timestamps | video | editor side-by-side */}
-      <div className="grid gap-4
-        lg:grid-cols-[300px_1fr] lg:[grid-template-rows:auto_1fr] lg:h-[calc(100vh-200px)]
-        xl:grid-cols-[340px_1fr_380px] xl:[grid-template-rows:auto] xl:h-auto">
+      {/* Workspace grid — layout toggles between balanced (3-col) and video-focus (video full-width top) */}
+      <div className={cn("grid gap-4", layout === "balanced"
+        ? "lg:grid-cols-[300px_1fr] lg:[grid-template-rows:auto_1fr] lg:h-[calc(100vh-200px)] xl:grid-cols-[340px_1fr_380px] xl:[grid-template-rows:auto] xl:h-auto"
+        : "sm:grid-cols-[300px_1fr] sm:[grid-template-rows:auto_1fr] sm:h-[calc(100vh-180px)]"
+      )}>
 
         {/* Col 1: Controls + Timestamp list
             lg: spans both rows | xl: single row with max-height */}
-        <Card className="flex flex-col gap-3 overflow-hidden
-          lg:row-span-2
-          xl:row-span-1 xl:max-h-[calc(100vh-180px)]">
+        <Card className={cn("flex flex-col gap-3 overflow-hidden", layout === "balanced"
+          ? "lg:row-span-2 xl:row-span-1 xl:max-h-[calc(100vh-180px)]"
+          : "sm:col-start-1 sm:row-start-2 sm:max-h-full sm:overflow-hidden"
+        )}>
           <VideoControls onAddTimestamp={handleAddTimestamp} canEdit={canEdit} />
           <DrawingToolbar canEdit={canEdit} teamId={project.team_id} />
           <OverlayController timestamp={selectedTimestamp} canEdit={canEdit} />
@@ -271,8 +300,11 @@ export default function ProjectPage({
           </div>
         </Card>
 
-        {/* Col 2 / row 1: Video + canvas (same position at both breakpoints) */}
-        <Card className="flex flex-col gap-2 lg:col-start-2 lg:row-start-1 xl:col-start-2 xl:row-start-1 xl:max-h-[calc(100vh-180px)]">
+        {/* Col 2 / row 1: Video + canvas */}
+        <Card className={cn("flex flex-col gap-2", layout === "balanced"
+          ? "lg:col-start-2 lg:row-start-1 xl:col-start-2 xl:row-start-1 xl:max-h-[calc(100vh-180px)]"
+          : "sm:col-span-2 sm:row-start-1"
+        )}>
           <div className="relative flex-shrink-0">
             <VideoPlayer videoId={project.youtube_id} />
             <TelestrationCanvas
@@ -303,11 +335,11 @@ export default function ProjectPage({
           </div>
         </Card>
 
-        {/* Editor panel
-            lg: col 2 / row 2 (below video) | xl: col 3 / row 1 (right column) */}
-        <Card className="flex flex-col gap-4 overflow-auto min-h-0
-          lg:col-start-2 lg:row-start-2
-          xl:col-start-3 xl:row-start-1 xl:max-h-[calc(100vh-180px)]">
+        {/* Editor panel */}
+        <Card className={cn("flex flex-col gap-4 overflow-auto min-h-0", layout === "balanced"
+          ? "lg:col-start-2 lg:row-start-2 xl:col-start-3 xl:row-start-1 xl:max-h-[calc(100vh-180px)]"
+          : "sm:col-start-2 sm:row-start-2"
+        )}>
           <TimestampEditor
             timestamp={selectedTimestamp}
             projectId={id}
