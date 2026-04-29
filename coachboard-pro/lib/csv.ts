@@ -19,12 +19,19 @@ export function fromCSV(text: string): {
   headers: string[];
   rows: Record<string, string>[];
 } {
-  const lines = text
+  // Strip UTF-8 BOM (common in Excel exports)
+  const cleaned = text.replace(/^﻿/, "");
+
+  const lines = cleaned
     .replace(/\r\n/g, "\n")
     .replace(/\r/g, "\n")
     .split("\n")
     .filter((l) => l.trim().length);
   if (!lines.length) return { headers: [], rows: [] };
+
+  // Auto-detect delimiter: semicolon (European Excel) vs comma
+  const firstLine = lines[0];
+  const delimiter = firstLine.includes(";") && !firstLine.includes(",") ? ";" : ",";
 
   const parseLine = (line: string): string[] => {
     const cells: string[] = [];
@@ -41,7 +48,7 @@ export function fromCSV(text: string): {
         inQ = !inQ;
         continue;
       }
-      if (ch === "," && !inQ) {
+      if (ch === delimiter && !inQ) {
         cells.push(cur);
         cur = "";
         continue;
@@ -52,10 +59,13 @@ export function fromCSV(text: string): {
     return cells.map((c) => c.trim());
   };
 
-  const headers = parseLine(lines[0]).map((h) => h.trim());
+  // Normalize headers: lowercase + trim so column names are case-insensitive
+  const headers = parseLine(lines[0]).map((h) => h.trim().toLowerCase());
   const rows: Record<string, string>[] = [];
   for (let i = 1; i < lines.length; i++) {
     const cells = parseLine(lines[i]);
+    // Skip fully empty rows
+    if (cells.every((c) => !c.trim())) continue;
     const row: Record<string, string> = {};
     headers.forEach((h, idx) => (row[h] = cells[idx] ?? ""));
     rows.push(row);

@@ -172,25 +172,43 @@ export function RosterTable({ teamId, canEdit }: RosterTableProps) {
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const text = await file.text();
-    const { rows } = fromCSV(text);
-    const mapped = rows
-      .map((r) => ({
-        first_name: (r.first_name ?? r.first ?? r.name ?? "").trim(),
-        last_name: (r.last_name ?? r.last ?? r.surname ?? "").trim(),
-        position: (r.position ?? r.pos ?? "").trim(),
-        jersey_number: (r.jersey_number ?? r.jersey ?? r.number ?? "").trim(),
-      }))
-      .filter((r) => r.first_name || r.last_name);
 
-    if (!mapped.length) {
-      toast("No valid rows found in CSV.", "error");
-      return;
+    try {
+      const text = await file.text();
+      const { headers, rows } = fromCSV(text);
+
+      if (!rows.length) {
+        toast("No rows found in CSV.", "error");
+        return;
+      }
+
+      const mapped = rows
+        .map((r) => ({
+          // Accept common column name variants (headers are already lowercased)
+          first_name: (r.first_name ?? r.first ?? r.nombre ?? r.name ?? "").trim(),
+          last_name: (r.last_name ?? r.last ?? r.apellido ?? r.surname ?? "").trim(),
+          position: (r.position ?? r.pos ?? r.posicion ?? "").trim(),
+          jersey_number: (r.jersey_number ?? r.jersey ?? r.number ?? r.numero ?? r.num ?? "").trim(),
+        }))
+        .filter((r) => r.first_name || r.last_name);
+
+      if (!mapped.length) {
+        const found = headers.join(", ");
+        toast(
+          `No valid athletes found. Columns detected: ${found || "none"}. Expected: first_name, last_name, position, jersey_number`,
+          "error"
+        );
+        return;
+      }
+
+      await bulkCreate.mutateAsync({ teamId, athletes: mapped });
+      toast(`Imported ${mapped.length} athlete${mapped.length !== 1 ? "s" : ""}.`, "success");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      toast(`Import failed: ${msg}`, "error");
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
-
-    await bulkCreate.mutateAsync({ teamId, athletes: mapped });
-    toast(`Imported ${mapped.length} athletes.`, "success");
-    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   return (
