@@ -22,14 +22,13 @@ export default function NewProjectPage() {
   const [category, setCategory] = useState<"game" | "practice">("game");
   const [manualTeamId, setManualTeamId] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [selectedTeamId, setSelectedTeamId] = useState("");
   const router = useRouter();
   const createProject = useCreateProject();
   const { user } = useAuth();
   const { toast } = useToast();
   const supabase = createClient();
   const { data: existingProjects } = useProjects();
-  const { canCreateProject } = useSubscription();
-  const atLimit = !canCreateProject(existingProjects?.length ?? 0);
 
   // Detect footage admin / support account
   const footageAdminEntries = (process.env.NEXT_PUBLIC_FOOTAGE_ADMIN_EMAILS || "")
@@ -64,7 +63,10 @@ export default function NewProjectPage() {
     enabled: !!user && !isFootageAdmin,
   });
 
-  const [selectedTeamId, setSelectedTeamId] = useState("");
+  // Inherit Pro limits from head coach when acting under a team
+  const effectiveTeamId = selectedTeamId || teams?.[0]?.id;
+  const { canCreateProject } = useSubscription(effectiveTeamId);
+  const atLimit = !canCreateProject(existingProjects?.length ?? 0);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
