@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { useProjects } from "@/hooks/use-project";
 import { useSubscription } from "@/hooks/use-subscription";
 import { ProjectCard, ProjectListItem } from "@/components/dashboard/project-card";
@@ -13,17 +14,52 @@ import { isAthlete } from "@/lib/permissions";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/components/ui/toast";
 import { FREE_LIMITS } from "@/lib/constants";
+import { createClient } from "@/lib/supabase/client";
 
 export default function DashboardPage() {
   const [view, setView] = useState<"panel" | "list">("panel");
   const { data: projects, isLoading } = useProjects();
   const { canCreateProject, isPro } = useSubscription();
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
+  const supabase = createClient();
   const athleteUser = isAthlete(profile);
   const projectCount = projects?.length ?? 0;
-  const atLimit = !canCreateProject(projectCount);
+
+  // Check if any team the user belongs to has a Pro owner — inherits project creation rights
+  const { data: anyProTeam } = useQuery({
+    queryKey: ["any-pro-team", user?.id],
+    queryFn: async () => {
+      if (!user) return false;
+      const { data: memberships } = await supabase
+        .from("team_members")
+        .select("team_id")
+        .eq("user_id", user.id)
+        .eq("status", "accepted");
+      if (!memberships?.length) return false;
+      const teamIds = (memberships as { team_id: string }[]).map((m) => m.team_id);
+      const { data: teams } = await supabase
+        .from("teams")
+        .select("created_by")
+        .in("id", teamIds);
+      if (!teams?.length) return false;
+      const ownerIds = (teams as { created_by: string }[]).map((t) => t.created_by);
+      const { data: owners } = await supabase
+        .from("profiles")
+        .select("subscription_status")
+        .in("id", ownerIds);
+      return (
+        (owners as { subscription_status: string }[] | null)?.some(
+          (o) => o.subscription_status === "pro" || o.subscription_status === "elite"
+        ) ?? false
+      );
+    },
+    enabled: !!user && !isAthlete(profile),
+    staleTime: 60_000,
+  });
+
+  const atLimit = !canCreateProject(projectCount) && !anyProTeam;
 
   return (
     <div className="flex flex-col gap-6">
