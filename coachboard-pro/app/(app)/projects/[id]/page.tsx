@@ -218,6 +218,25 @@ export default function ProjectPage({
     return candidate.id;
   }, [visibleTimestamps, currentTime]);
 
+  // Sorted timestamps for playlist prev/next navigation
+  const sortedTimestamps = useMemo(
+    () => [...visibleTimestamps].sort((a, b) => a.time_seconds - b.time_seconds),
+    [visibleTimestamps]
+  );
+  const playlistIndex = useMemo(() => {
+    const activeId = playingTimestampId ?? selectedTimestampId;
+    return sortedTimestamps.findIndex((ts) => ts.id === activeId);
+  }, [sortedTimestamps, playingTimestampId, selectedTimestampId]);
+
+  const handlePrevTimestamp = () => {
+    const target = sortedTimestamps[playlistIndex > 0 ? playlistIndex - 1 : 0];
+    if (target) { setSelectedTimestamp(target.id); seekTo(target.time_seconds); }
+  };
+  const handleNextTimestamp = () => {
+    const target = sortedTimestamps[playlistIndex + 1];
+    if (target) { setSelectedTimestamp(target.id); seekTo(target.time_seconds); }
+  };
+
   if (projectLoading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -354,9 +373,36 @@ export default function ProjectPage({
           </button>
 
           {/* Floating bottom bar: video controls + drawing tools */}
-          <div className="absolute bottom-0 left-0 right-0 z-10 flex flex-wrap items-center gap-3 border-t border-white/10 bg-black/80 px-4 py-1 backdrop-blur-md [&_*]:!text-white/80 [&_button:hover]:!bg-white/10 [&_button]:!border-white/10">
+          <div className="absolute bottom-0 left-0 right-0 z-10 flex flex-wrap items-start gap-3 border-t border-white/10 bg-black/80 px-4 py-2 backdrop-blur-md [&_*]:!text-white/80 [&_button:hover]:!bg-white/10 [&_button]:!border-white/10">
             <VideoControls onAddTimestamp={handleAddTimestamp} canEdit={canEdit} filmroom />
-            <span className="hidden h-5 w-px bg-white/20 sm:block" />
+            <span className="hidden h-5 w-px bg-white/20 sm:block mt-0.5" />
+            {/* Playlist: prev / next timestamp */}
+            {sortedTimestamps.length > 0 && (
+              <div className="flex items-center gap-1 mt-0.5">
+                <button
+                  onClick={handlePrevTimestamp}
+                  disabled={playlistIndex <= 0}
+                  title="Previous timestamp"
+                  className="flex items-center gap-0.5 rounded px-1.5 py-0.5 text-xs text-white/60 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:pointer-events-none"
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                  Prev
+                </button>
+                <span className="text-[10px] text-white/30">
+                  {playlistIndex >= 0 ? `${playlistIndex + 1}/${sortedTimestamps.length}` : `—/${sortedTimestamps.length}`}
+                </span>
+                <button
+                  onClick={handleNextTimestamp}
+                  disabled={playlistIndex >= sortedTimestamps.length - 1}
+                  title="Next timestamp"
+                  className="flex items-center gap-0.5 rounded px-1.5 py-0.5 text-xs text-white/60 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:pointer-events-none"
+                >
+                  Next
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            )}
+            <span className="hidden h-5 w-px bg-white/20 sm:block mt-0.5" />
             <DrawingToolbar canEdit={canEdit} teamId={project.team_id} />
           </div>
         </div>
