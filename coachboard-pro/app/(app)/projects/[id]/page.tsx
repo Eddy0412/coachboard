@@ -1,6 +1,6 @@
 "use client";
 
-import React, { use, useEffect, useMemo } from "react";
+import React, { use, useEffect, useMemo, useState } from "react";
 import { useProject } from "@/hooks/use-project";
 import { formatTime } from "@/lib/youtube";
 import {
@@ -29,7 +29,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Columns3, LayoutPanelTop, Settings } from "lucide-react";
+import { Columns3, LayoutPanelTop, Film, ChevronLeft, ChevronRight, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useWorkspaceLayout } from "@/hooks/use-workspace-layout";
 
@@ -48,6 +48,7 @@ export default function ProjectPage({
   const { getCurrentTime, seekTo } = useYouTubePlayer("yt-player");
 
   const { layout, setLayout } = useWorkspaceLayout();
+  const [filmroomPanelOpen, setFilmroomPanelOpen] = useState(true);
 
   const { data: project, isLoading: projectLoading } = useProject(id);
   const { data: timestamps = [] } = useTimestamps(id);
@@ -259,6 +260,16 @@ export default function ProjectPage({
             >
               <LayoutPanelTop className="h-4 w-4" />
             </button>
+            <button
+              onClick={() => setLayout("filmroom")}
+              title="Film room"
+              className={cn(
+                "rounded p-1.5 transition-colors",
+                layout === "filmroom" ? "bg-primary-bg text-primary" : "text-muted hover:text-text"
+              )}
+            >
+              <Film className="h-4 w-4" />
+            </button>
           </div>
 
           {canEdit && (
@@ -272,7 +283,73 @@ export default function ProjectPage({
         </div>
       </div>
 
-      {layout === "balanced" ? (
+      {layout === "filmroom" ? (
+        /*
+          FILM ROOM: video fills full height, timestamps float left, controls float bottom
+        */
+        <div
+          className="relative overflow-hidden rounded-xl bg-black"
+          style={{ height: "calc(100vh - 180px)" }}
+        >
+          {/* Video + telestration centered in the black canvas */}
+          <div className="absolute inset-0 flex items-center">
+            <div className="relative w-full">
+              <VideoPlayer videoId={project.youtube_id} />
+              <TelestrationCanvas timestampId={selectedTimestampId} canEdit={canEdit} />
+            </div>
+          </div>
+
+          {/* Floating left panel: timestamps */}
+          <div
+            className={cn(
+              "absolute inset-y-0 left-0 z-10 flex w-72 flex-col",
+              "border-r border-white/10 bg-black/80 backdrop-blur-md",
+              "transition-transform duration-300 ease-in-out",
+              !filmroomPanelOpen && "-translate-x-full"
+            )}
+          >
+            <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-3 py-2.5">
+              <span className="text-sm font-bold text-white">Timestamps</span>
+              <button
+                onClick={() => setFilmroomPanelOpen(false)}
+                className="rounded p-1 text-white/60 transition-colors hover:bg-white/10 hover:text-white"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="min-h-0 flex-1 overflow-auto p-2 [&_*]:!border-white/10 [&_*]:!text-white/90 [&_button:hover]:!bg-white/10">
+              <TimestampList
+                timestamps={visibleTimestamps}
+                athletes={athletes}
+                timestampAthletes={timestampAthletesMap}
+                onSelect={(tsId) => setSelectedTimestamp(tsId)}
+                onSeek={handleSeek}
+                teamId={project.team_id}
+              />
+            </div>
+          </div>
+
+          {/* Tab to re-open panel when collapsed */}
+          <button
+            onClick={() => setFilmroomPanelOpen(true)}
+            className={cn(
+              "absolute left-0 top-1/2 z-10 -translate-y-1/2",
+              "rounded-r-xl border border-l-0 border-white/10 bg-black/60 px-1 py-3 backdrop-blur-md",
+              "text-white/60 transition-all duration-300 hover:text-white",
+              filmroomPanelOpen && "pointer-events-none opacity-0"
+            )}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+
+          {/* Floating bottom bar: video controls + drawing tools */}
+          <div className="absolute bottom-0 left-0 right-0 z-10 flex flex-wrap items-center gap-3 border-t border-white/10 bg-black/80 px-4 py-2 backdrop-blur-md [&_*]:!text-white/80 [&_button:hover]:!bg-white/10 [&_button]:!border-white/10">
+            <VideoControls onAddTimestamp={handleAddTimestamp} canEdit={canEdit} />
+            <span className="hidden h-5 w-px bg-white/20 sm:block" />
+            <DrawingToolbar canEdit={canEdit} teamId={project.team_id} />
+          </div>
+        </div>
+      ) : layout === "balanced" ? (
         /*
           BALANCED: timestamps | video | editor
           lg: 2-col (timestamps spans 2 rows), xl: 3-col side-by-side
