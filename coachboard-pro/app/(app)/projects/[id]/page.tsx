@@ -29,7 +29,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Columns3, LayoutPanelTop, Film, ChevronLeft, ChevronRight, Settings } from "lucide-react";
+import { Columns3, LayoutPanelTop, Film, ChevronLeft, ChevronRight, Repeat, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useWorkspaceLayout } from "@/hooks/use-workspace-layout";
 
@@ -49,6 +49,7 @@ export default function ProjectPage({
 
   const { layout, setLayout } = useWorkspaceLayout();
   const [filmroomPanelOpen, setFilmroomPanelOpen] = useState(true);
+  const [filmroomAutoplay, setFilmroomAutoplay] = useState(true);
 
   const { data: project, isLoading: projectLoading } = useProject(id);
   const { data: timestamps = [] } = useTimestamps(id);
@@ -182,7 +183,7 @@ export default function ProjectPage({
       if (autoPausedRef.current !== selectedTimestamp.id) {
         autoPausedRef.current = selectedTimestamp.id;
 
-        if (layout === "filmroom") {
+        if (layout === "filmroom" && filmroomAutoplay) {
           // Auto-advance to next timestamp instead of pausing
           const idx = sortedTimestamps.findIndex((ts) => ts.id === selectedTimestamp.id);
           const next = sortedTimestamps[idx + 1];
@@ -205,16 +206,16 @@ export default function ProjectPage({
         autoPausedRef.current = null;
       }
     }
-  }, [currentTime, selectedTimestamp, setOverlayVisible, pause, play, seekTo, setStatus, layout, sortedTimestamps, setSelectedTimestamp]);
+  }, [currentTime, selectedTimestamp, setOverlayVisible, pause, play, seekTo, setStatus, layout, filmroomAutoplay, sortedTimestamps, setSelectedTimestamp]);
 
-  // Film room: auto-select the timestamp the video is currently inside
+  // Film room: auto-select the timestamp the video is currently inside (when autoplay on)
   const filmroomAutoRef = React.useRef<string | null>(null);
   useEffect(() => {
-    if (layout !== "filmroom" || !playingTimestampId) return;
+    if (layout !== "filmroom" || !filmroomAutoplay || !playingTimestampId) return;
     if (filmroomAutoRef.current === playingTimestampId) return;
     filmroomAutoRef.current = playingTimestampId;
     setSelectedTimestamp(playingTimestampId);
-  }, [layout, playingTimestampId, setSelectedTimestamp]);
+  }, [layout, filmroomAutoplay, playingTimestampId, setSelectedTimestamp]);
 
   const handleAddTimestamp = async () => {
     const time = Math.floor(getCurrentTime());
@@ -421,6 +422,19 @@ export default function ProjectPage({
                 >
                   Next
                   <ChevronRight className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  onClick={() => setFilmroomAutoplay((v) => !v)}
+                  title={filmroomAutoplay ? "Autoplay on — click to disable" : "Autoplay off — click to enable"}
+                  className={cn(
+                    "ml-1 flex items-center gap-1 rounded px-1.5 py-0.5 text-xs transition-colors",
+                    filmroomAutoplay
+                      ? "bg-white/20 text-white"
+                      : "text-white/30 hover:text-white/60"
+                  )}
+                >
+                  <Repeat className="h-3 w-3" />
+                  Auto
                 </button>
               </div>
             )}
