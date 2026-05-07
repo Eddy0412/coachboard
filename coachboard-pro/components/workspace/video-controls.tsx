@@ -22,9 +22,10 @@ const SPEEDS = [0.25, 0.5, 1, 1.5, 2];
 interface VideoControlsProps {
   onAddTimestamp: () => void;
   canEdit: boolean;
+  filmroom?: boolean;
 }
 
-export function VideoControls({ onAddTimestamp, canEdit }: VideoControlsProps) {
+export function VideoControls({ onAddTimestamp, canEdit, filmroom }: VideoControlsProps) {
   const { play, pause, seekTo, getCurrentTime, toggleMute, setPlaybackRate } =
     useYouTubePlayer("yt-player");
   const { currentTime, status } = useWorkspaceStore();
@@ -87,9 +88,13 @@ export function VideoControls({ onAddTimestamp, canEdit }: VideoControlsProps) {
               type="button"
               onClick={() => handleSpeedChange(rate)}
               title={`${rate}x speed`}
-              className={`px-1 py-0.5 text-[11px] rounded transition-colors ${
+              className={`px-1.5 py-0.5 text-[11px] rounded transition-colors ${
                 activeRate === rate
-                  ? "text-primary font-semibold"
+                  ? filmroom
+                    ? "bg-white/25 text-white font-semibold"
+                    : "text-primary font-semibold"
+                  : filmroom
+                  ? "text-white/50 hover:text-white"
                   : "text-muted hover:text-text"
               }`}
             >

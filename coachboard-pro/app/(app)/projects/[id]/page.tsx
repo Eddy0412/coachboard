@@ -208,6 +208,16 @@ export default function ProjectPage({
     seekTo(seconds);
   };
 
+  // In film room: highlight the most recent timestamp whose start <= currentTime
+  const playingTimestampId = useMemo(() => {
+    const candidate = [...visibleTimestamps]
+      .filter((ts) => ts.time_seconds <= currentTime)
+      .sort((a, b) => b.time_seconds - a.time_seconds)[0];
+    if (!candidate) return null;
+    if (candidate.end_time_seconds && currentTime > candidate.end_time_seconds) return null;
+    return candidate.id;
+  }, [visibleTimestamps, currentTime]);
+
   if (projectLoading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -325,6 +335,7 @@ export default function ProjectPage({
                 onSelect={(tsId) => setSelectedTimestamp(tsId)}
                 onSeek={handleSeek}
                 teamId={project.team_id}
+                activeTimestampId={playingTimestampId}
               />
             </div>
           </div>
@@ -343,8 +354,8 @@ export default function ProjectPage({
           </button>
 
           {/* Floating bottom bar: video controls + drawing tools */}
-          <div className="absolute bottom-0 left-0 right-0 z-10 flex flex-wrap items-center gap-3 border-t border-white/10 bg-black/80 px-4 py-2 backdrop-blur-md [&_*]:!text-white/80 [&_button:hover]:!bg-white/10 [&_button]:!border-white/10">
-            <VideoControls onAddTimestamp={handleAddTimestamp} canEdit={canEdit} />
+          <div className="absolute bottom-0 left-0 right-0 z-10 flex flex-wrap items-center gap-3 border-t border-white/10 bg-black/80 px-4 py-1 backdrop-blur-md [&_*]:!text-white/80 [&_button:hover]:!bg-white/10 [&_button]:!border-white/10">
+            <VideoControls onAddTimestamp={handleAddTimestamp} canEdit={canEdit} filmroom />
             <span className="hidden h-5 w-px bg-white/20 sm:block" />
             <DrawingToolbar canEdit={canEdit} teamId={project.team_id} />
           </div>
