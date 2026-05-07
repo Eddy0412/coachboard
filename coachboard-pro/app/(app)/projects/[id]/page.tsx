@@ -163,8 +163,8 @@ export default function ProjectPage({
   const selectedTimestamp =
     timestamps.find((t) => t.id === selectedTimestampId) ?? null;
 
-  // Auto-show/hide overlay and auto-pause at end time
-  const { pause } = useYouTubePlayer("yt-player");
+  // Auto-show/hide overlay and auto-pause/advance at end time
+  const { pause, play } = useYouTubePlayer("yt-player");
   const autoPausedRef = React.useRef<string | null>(null);
 
   useEffect(() => {
@@ -174,25 +174,47 @@ export default function ProjectPage({
     }
     const start = selectedTimestamp.time_seconds;
     const duration = selectedTimestamp.overlay_show_sec ?? 1;
-    // Overlay (drawing) visibility is always based on overlay_show_sec
     const overlayEnd = start + duration;
     const visible = currentTime >= start && currentTime <= overlayEnd;
     setOverlayVisible(visible);
 
-    // Auto-pause when reaching end time (once per timestamp selection)
     if (selectedTimestamp.end_time_seconds && currentTime >= selectedTimestamp.end_time_seconds) {
       if (autoPausedRef.current !== selectedTimestamp.id) {
         autoPausedRef.current = selectedTimestamp.id;
-        pause();
-        setStatus(`Auto-paused at ${formatTime(selectedTimestamp.end_time_seconds)}`);
+
+        if (layout === "filmroom") {
+          // Auto-advance to next timestamp instead of pausing
+          const idx = sortedTimestamps.findIndex((ts) => ts.id === selectedTimestamp.id);
+          const next = sortedTimestamps[idx + 1];
+          if (next) {
+            setSelectedTimestamp(next.id);
+            seekTo(next.time_seconds);
+            play();
+            setStatus(`▶ ${next.title || formatTime(next.time_seconds)}`);
+          } else {
+            pause();
+            setStatus("End of playlist");
+          }
+        } else {
+          pause();
+          setStatus(`Auto-paused at ${formatTime(selectedTimestamp.end_time_seconds)}`);
+        }
       }
     } else {
-      // Reset auto-pause flag when before end time (allows re-pause on replay)
       if (autoPausedRef.current === selectedTimestamp.id && currentTime < start) {
         autoPausedRef.current = null;
       }
     }
-  }, [currentTime, selectedTimestamp, setOverlayVisible, pause, setStatus]);
+  }, [currentTime, selectedTimestamp, setOverlayVisible, pause, play, seekTo, setStatus, layout, sortedTimestamps, setSelectedTimestamp]);
+
+  // Film room: auto-select the timestamp the video is currently inside
+  const filmroomAutoRef = React.useRef<string | null>(null);
+  useEffect(() => {
+    if (layout !== "filmroom" || !playingTimestampId) return;
+    if (filmroomAutoRef.current === playingTimestampId) return;
+    filmroomAutoRef.current = playingTimestampId;
+    setSelectedTimestamp(playingTimestampId);
+  }, [layout, playingTimestampId, setSelectedTimestamp]);
 
   const handleAddTimestamp = async () => {
     const time = Math.floor(getCurrentTime());
@@ -346,7 +368,7 @@ export default function ProjectPage({
                 <ChevronLeft className="h-4 w-4" />
               </button>
             </div>
-            <div className="min-h-0 flex-1 overflow-auto p-2 [&_*]:!border-white/10 [&_*]:!text-white/90 [&_button:hover]:!bg-white/10">
+            <div className="min-h-0 flex-1 overflow-auto p-2 [&_*]:!text-white/90 [&_button:hover]:!bg-white/10">
               <TimestampList
                 timestamps={visibleTimestamps}
                 athletes={athletes}
