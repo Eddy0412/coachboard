@@ -164,6 +164,27 @@ export default function ProjectPage({
   const selectedTimestamp =
     timestamps.find((t) => t.id === selectedTimestampId) ?? null;
 
+  // Sorted timestamps for playlist navigation and auto-advance
+  const sortedTimestamps = useMemo(
+    () => [...visibleTimestamps].sort((a, b) => a.time_seconds - b.time_seconds),
+    [visibleTimestamps]
+  );
+
+  // Highlight the most recent timestamp whose start <= currentTime
+  const playingTimestampId = useMemo(() => {
+    const candidate = [...visibleTimestamps]
+      .filter((ts) => ts.time_seconds <= currentTime)
+      .sort((a, b) => b.time_seconds - a.time_seconds)[0];
+    if (!candidate) return null;
+    if (candidate.end_time_seconds && currentTime > candidate.end_time_seconds) return null;
+    return candidate.id;
+  }, [visibleTimestamps, currentTime]);
+
+  const playlistIndex = useMemo(() => {
+    const activeId = playingTimestampId ?? selectedTimestampId;
+    return sortedTimestamps.findIndex((ts) => ts.id === activeId);
+  }, [sortedTimestamps, playingTimestampId, selectedTimestampId]);
+
   // Auto-show/hide overlay and auto-pause/advance at end time
   const { pause, play } = useYouTubePlayer("yt-player");
   const autoPausedRef = React.useRef<string | null>(null);
@@ -230,26 +251,6 @@ export default function ProjectPage({
   const handleSeek = (seconds: number) => {
     seekTo(seconds);
   };
-
-  // In film room: highlight the most recent timestamp whose start <= currentTime
-  const playingTimestampId = useMemo(() => {
-    const candidate = [...visibleTimestamps]
-      .filter((ts) => ts.time_seconds <= currentTime)
-      .sort((a, b) => b.time_seconds - a.time_seconds)[0];
-    if (!candidate) return null;
-    if (candidate.end_time_seconds && currentTime > candidate.end_time_seconds) return null;
-    return candidate.id;
-  }, [visibleTimestamps, currentTime]);
-
-  // Sorted timestamps for playlist prev/next navigation
-  const sortedTimestamps = useMemo(
-    () => [...visibleTimestamps].sort((a, b) => a.time_seconds - b.time_seconds),
-    [visibleTimestamps]
-  );
-  const playlistIndex = useMemo(() => {
-    const activeId = playingTimestampId ?? selectedTimestampId;
-    return sortedTimestamps.findIndex((ts) => ts.id === activeId);
-  }, [sortedTimestamps, playingTimestampId, selectedTimestampId]);
 
   const handlePrevTimestamp = () => {
     const target = sortedTimestamps[playlistIndex > 0 ? playlistIndex - 1 : 0];
