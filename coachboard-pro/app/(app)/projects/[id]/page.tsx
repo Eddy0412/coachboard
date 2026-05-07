@@ -427,10 +427,10 @@ export default function ProjectPage({
                   onClick={() => setFilmroomAutoplay((v) => !v)}
                   title={filmroomAutoplay ? "Autoplay on — click to disable" : "Autoplay off — click to enable"}
                   className={cn(
-                    "ml-1 flex items-center gap-1 rounded px-1.5 py-0.5 text-xs transition-colors",
+                    "ml-1 flex items-center gap-1 rounded border px-1.5 py-0.5 text-xs transition-colors",
                     filmroomAutoplay
-                      ? "bg-white/20 text-white"
-                      : "text-white/30 hover:text-white/60"
+                      ? "!bg-emerald-500/25 !border-emerald-500/50 !text-emerald-300"
+                      : "!border-white/10 !text-white/30 hover:!text-white/60"
                   )}
                 >
                   <Repeat className="h-3 w-3" />

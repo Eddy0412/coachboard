@@ -5,8 +5,7 @@ import { useClearDrawings } from "@/hooks/use-drawing";
 import { useSubscription } from "@/hooks/use-subscription";
 import { DRAW_COLORS, FREE_DRAW_COLORS, DRAW_SIZES } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
-import { Select } from "@/components/ui/select";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface DrawingToolbarProps {
@@ -64,17 +63,18 @@ export function DrawingToolbar({ canEdit, teamId }: DrawingToolbarProps) {
         ))}
       </div>
 
-      <Select
-        value={String(selectedSize)}
-        onChange={(e) => setSelectedSize(Number(e.target.value))}
-        className="w-20"
-      >
-        {DRAW_SIZES.map((s) => (
-          <option key={s} value={s}>
-            {s}px
-          </option>
-        ))}
-      </Select>
+      <div className="relative flex items-center">
+        <select
+          value={String(selectedSize)}
+          onChange={(e) => setSelectedSize(Number(e.target.value))}
+          className="h-9 appearance-none cursor-pointer rounded-xl border border-border bg-input pl-3 pr-7 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        >
+          {DRAW_SIZES.map((s) => (
+            <option key={s} value={s}>{s}px</option>
+          ))}
+        </select>
+        <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted" />
+      </div>
 
       <Button
         variant="danger"
