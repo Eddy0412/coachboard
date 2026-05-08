@@ -106,16 +106,16 @@ export function TimestampList({
                 }}
                 className={cn(
                   "flex flex-col gap-1.5 rounded-xl border p-3 text-left transition-colors",
-                  ts.id === selectedTimestampId
-                    ? "border-primary-br bg-primary-bg/30"
-                    : ts.id === activeTimestampId
+                  ts.id === activeTimestampId
                     ? "border-emerald-500/60 bg-emerald-500/10"
+                    : ts.id === selectedTimestampId
+                    ? "border-primary-br bg-primary-bg/30"
                     : "border-border hover:border-primary-br"
                 )}
               >
                 <div className="flex items-center justify-between gap-2">
                   <span className="flex items-center gap-1.5 text-sm font-bold">
-                    {ts.id === activeTimestampId && ts.id !== selectedTimestampId && (
+                    {ts.id === activeTimestampId && (
                       <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
                     )}
                     {formatTime(ts.time_seconds)} — {ts.title || "Untitled"}
