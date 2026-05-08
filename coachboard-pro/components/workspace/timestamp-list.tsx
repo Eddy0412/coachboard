@@ -21,6 +21,8 @@ interface TimestampListProps {
   onSeek: (seconds: number) => void;
   teamId?: string | null;
   activeTimestampId?: string | null;
+  filterValue?: string;
+  onFilterChange?: (v: string) => void;
 }
 
 export function TimestampList({
@@ -31,8 +33,12 @@ export function TimestampList({
   onSeek,
   teamId,
   activeTimestampId,
+  filterValue,
+  onFilterChange,
 }: TimestampListProps) {
-  const [filter, setFilter] = useState("");
+  const [internalFilter, setInternalFilter] = useState("");
+  const filter = filterValue !== undefined ? filterValue : internalFilter;
+  const setFilter = onFilterChange ?? setInternalFilter;
   const { selectedTimestampId } = useWorkspaceStore();
   const { isPro, isElite } = useSubscription(teamId);
   const hasGameDetails = isPro || isElite;

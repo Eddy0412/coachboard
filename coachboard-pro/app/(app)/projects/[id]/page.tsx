@@ -10,6 +10,7 @@ import {
 } from "@/hooks/use-timestamps";
 import { useWorkspaceStore } from "@/stores/workspace";
 import { useShallow } from "zustand/react/shallow";
+import { ODK_OPTIONS } from "@/lib/constants";
 import { useYouTubePlayer } from "@/hooks/use-youtube";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useQuery } from "@tanstack/react-query";
@@ -59,6 +60,7 @@ export default function ProjectPage({
   const { layout, setLayout } = useWorkspaceLayout();
   const [filmroomPanelOpen, setFilmroomPanelOpen] = useState(true);
   const [filmroomAutoplay, setFilmroomAutoplay] = useState(true);
+  const [tsFilter, setTsFilter] = useState("");
 
   const { data: project, isLoading: projectLoading } = useProject(id);
   const { data: timestamps = [] } = useTimestamps(id);
@@ -155,6 +157,34 @@ export default function ProjectPage({
     });
   }, [athleteRole, myAthleteRecord, timestamps, timestampAthletesMap]);
 
+  // Apply the list filter so autoplay/prev/next honor whatever the user typed
+  const odkByValue = useMemo(
+    () => Object.fromEntries(ODK_OPTIONS.map((o) => [o.value, o])),
+    []
+  );
+  const filteredTimestamps = useMemo(() => {
+    if (!tsFilter) return visibleTimestamps;
+    const q = tsFilter.toLowerCase().trim();
+    return visibleTimestamps.filter((ts) => {
+      const taggedIds = timestampAthletesMap[ts.id] || [];
+      const taggedLabels = taggedIds
+        .map((id) => athletes.find((a) => a.id === id))
+        .filter(Boolean)
+        .map((a) => `${a!.first_name} ${a!.last_name} ${a!.position} ${a!.jersey_number}`)
+        .join(" ");
+      const odkInfo = ts.odk ? odkByValue[ts.odk] : null;
+      const odkMatch = odkInfo
+        ? odkInfo.code.toLowerCase().includes(q) || odkInfo.label.toLowerCase().includes(q)
+        : false;
+      return (
+        (ts.title || "").toLowerCase().includes(q) ||
+        (ts.description || "").toLowerCase().includes(q) ||
+        taggedLabels.toLowerCase().includes(q) ||
+        odkMatch
+      );
+    });
+  }, [tsFilter, visibleTimestamps, timestampAthletesMap, athletes, odkByValue]);
+
   // Get tagged athletes for selected timestamp
   const { data: selectedTimestampAthletes = [] } = useQuery({
     queryKey: ["timestamp_athletes", selectedTimestampId],
@@ -173,21 +203,21 @@ export default function ProjectPage({
   const selectedTimestamp =
     timestamps.find((t) => t.id === selectedTimestampId) ?? null;
 
-  // Sorted timestamps for playlist navigation and auto-advance
+  // Sorted timestamps for playlist navigation and auto-advance — uses filtered set
   const sortedTimestamps = useMemo(
-    () => [...visibleTimestamps].sort((a, b) => a.time_seconds - b.time_seconds),
-    [visibleTimestamps]
+    () => [...filteredTimestamps].sort((a, b) => a.time_seconds - b.time_seconds),
+    [filteredTimestamps]
   );
 
-  // Highlight the most recent timestamp whose start <= currentTime
+  // Highlight the most recent timestamp whose start <= currentTime — uses filtered set
   const playingTimestampId = useMemo(() => {
-    const candidate = [...visibleTimestamps]
+    const candidate = [...filteredTimestamps]
       .filter((ts) => ts.time_seconds <= currentTime)
       .sort((a, b) => b.time_seconds - a.time_seconds)[0];
     if (!candidate) return null;
     if (candidate.end_time_seconds && currentTime > candidate.end_time_seconds) return null;
     return candidate.id;
-  }, [visibleTimestamps, currentTime]);
+  }, [filteredTimestamps, currentTime]);
 
   const playlistIndex = useMemo(() => {
     const activeId = playingTimestampId ?? selectedTimestampId;
@@ -388,6 +418,8 @@ export default function ProjectPage({
                 onSeek={handleSeek}
                 teamId={project.team_id}
                 activeTimestampId={playingTimestampId}
+                filterValue={tsFilter}
+                onFilterChange={setTsFilter}
               />
             </div>
           </div>
@@ -474,6 +506,8 @@ export default function ProjectPage({
                 onSelect={(tsId) => setSelectedTimestamp(tsId)}
                 onSeek={handleSeek}
                 teamId={project.team_id}
+                filterValue={tsFilter}
+                onFilterChange={setTsFilter}
               />
             </div>
           </Card>
@@ -572,6 +606,8 @@ export default function ProjectPage({
                 onSelect={(tsId) => setSelectedTimestamp(tsId)}
                 onSeek={handleSeek}
                 teamId={project.team_id}
+                filterValue={tsFilter}
+                onFilterChange={setTsFilter}
               />
             </div>
           </Card>
