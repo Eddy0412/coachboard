@@ -9,6 +9,7 @@ import {
   useTimestampAthletes,
 } from "@/hooks/use-timestamps";
 import { useWorkspaceStore } from "@/stores/workspace";
+import { useShallow } from "zustand/react/shallow";
 import { useYouTubePlayer } from "@/hooks/use-youtube";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useQuery } from "@tanstack/react-query";
@@ -44,7 +45,15 @@ export default function ProjectPage({
   const { user, profile } = useAuth();
   const supabase = createClient();
   const { selectedTimestampId, setSelectedTimestamp, setStatus, currentTime, setOverlayVisible } =
-    useWorkspaceStore();
+    useWorkspaceStore(
+      useShallow((s) => ({
+        selectedTimestampId: s.selectedTimestampId,
+        setSelectedTimestamp: s.setSelectedTimestamp,
+        setStatus: s.setStatus,
+        currentTime: s.currentTime,
+        setOverlayVisible: s.setOverlayVisible,
+      }))
+    );
   const { getCurrentTime, seekTo } = useYouTubePlayer("yt-player");
 
   const { layout, setLayout } = useWorkspaceLayout();

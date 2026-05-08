@@ -2,6 +2,7 @@
 
 import { useRef, useEffect, useCallback } from "react";
 import { useWorkspaceStore } from "@/stores/workspace";
+import { useShallow } from "zustand/react/shallow";
 import { useDrawings, useCreateDrawing } from "@/hooks/use-drawing";
 import type { Drawing } from "@/lib/supabase/types";
 
@@ -24,7 +25,14 @@ export function TelestrationCanvas({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const activeStrokeRef = useRef<ActiveStroke | null>(null);
   const { drawEnabled, selectedColor, selectedSize, overlayVisible } =
-    useWorkspaceStore();
+    useWorkspaceStore(
+      useShallow((s) => ({
+        drawEnabled: s.drawEnabled,
+        selectedColor: s.selectedColor,
+        selectedSize: s.selectedSize,
+        overlayVisible: s.overlayVisible,
+      }))
+    );
   const { data: drawings = [] } = useDrawings(timestampId);
   const createDrawing = useCreateDrawing();
 

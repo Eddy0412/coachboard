@@ -2,6 +2,7 @@
 
 import { useEffect, useCallback } from "react";
 import { useWorkspaceStore } from "@/stores/workspace";
+import { useShallow } from "zustand/react/shallow";
 
 declare global {
   interface Window {
@@ -42,7 +43,13 @@ const players: Record<string, YT.Player | null> = {};
 let timeInterval: ReturnType<typeof setInterval> | null = null;
 
 export function useYouTubePlayer(containerId: string) {
-  const { setPlayerReady, setCurrentTime, setStatus } = useWorkspaceStore();
+  const { setPlayerReady, setCurrentTime, setStatus } = useWorkspaceStore(
+    useShallow((s) => ({
+      setPlayerReady: s.setPlayerReady,
+      setCurrentTime: s.setCurrentTime,
+      setStatus: s.setStatus,
+    }))
+  );
 
   const initPlayer = useCallback(
     (videoId?: string) => {
