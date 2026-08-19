@@ -74,7 +74,8 @@ export function PricingCards() {
       const { data: teamData } = await supabase
         .from("teams")
         .select("id, name")
-        .in("id", teamIds);
+        .in("id", teamIds)
+        .eq("status", "active");
       return (teamData ?? []) as { id: string; name: string }[];
     },
     enabled: !!user,

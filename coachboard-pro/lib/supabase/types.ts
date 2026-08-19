@@ -1,5 +1,6 @@
 export type UserRole = "head_coach" | "coach" | "athlete";
 export type TeamMemberStatus = "pending" | "accepted" | "declined";
+export type TeamStatus = "active" | "archived" | "deleted";
 export type SubscriptionStatus = "free" | "pro" | "canceled";
 export type ProjectPermission = "admin" | "write" | "read";
 export type InvitationStatus = "pending" | "accepted" | "expired";
@@ -59,6 +60,8 @@ export interface Team {
   id: string;
   name: string;
   created_by: string;
+  status: TeamStatus;
+  archived_at: string | null;
   created_at: string;
 }
 
@@ -229,6 +232,7 @@ export interface Database {
       project_permission: ProjectPermission;
       invitation_status: InvitationStatus;
       drawing_tool: DrawingTool;
+      team_status: TeamStatus;
     };
   };
 }

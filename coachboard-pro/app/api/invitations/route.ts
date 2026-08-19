@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { createClient as createServerSupabaseClient } from "@/lib/supabase/server";
 
 function getSupabaseAdmin() {
   return createClient(
@@ -50,11 +51,22 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { invitationId, userId } = body;
+    const { invitationId } = body;
 
-    if (!invitationId || !userId) {
+    if (!invitationId) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
+
+    // Identify the caller from their session — never trust a body-supplied
+    // userId, or anyone could add an arbitrary user to a team.
+    const authClient = await createServerSupabaseClient();
+    const {
+      data: { user: caller },
+    } = await authClient.auth.getUser();
+    if (!caller) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userId = caller.id;
 
     const supabase = getSupabaseAdmin();
 
@@ -67,6 +79,31 @@ export async function POST(request: NextRequest) {
 
     if (invErr || !invitation) {
       return NextResponse.json({ error: "Invitation not found" }, { status: 404 });
+    }
+
+    // Block joining a second active team — the caller must leave (or
+    // transfer/archive/delete) any other active team first.
+    const { data: existingMemberships } = await supabase
+      .from("team_members")
+      .select("team_id, role, teams(id, name, status)")
+      .eq("user_id", userId)
+      .eq("status", "accepted")
+      .neq("team_id", invitation.team_id);
+
+    const existingActive = (existingMemberships ?? []).find(
+      (m) => (m.teams as unknown as { status: string } | null)?.status === "active"
+    );
+
+    if (existingActive) {
+      const existingTeam = existingActive.teams as unknown as { id: string; name: string };
+      return NextResponse.json(
+        {
+          error: "You're already on another team",
+          code: "ALREADY_ON_TEAM",
+          existingTeam: { id: existingTeam.id, name: existingTeam.name, role: existingActive.role },
+        },
+        { status: 409 }
+      );
     }
 
     // Add user to team

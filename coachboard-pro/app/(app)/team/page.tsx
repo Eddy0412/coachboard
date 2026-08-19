@@ -6,14 +6,16 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { MemberList } from "@/components/team/member-list";
 import { InviteModal } from "@/components/team/invite-modal";
+import { LeaveTeamDialog } from "@/components/team/leave-team-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
 import { canManageTeam } from "@/lib/permissions";
-import { Copy, Trash2, Clock, CheckCircle, XCircle, RefreshCw } from "lucide-react";
+import { Copy, Trash2, Clock, CheckCircle, XCircle, RefreshCw, Archive } from "lucide-react";
 import { copyToClipboard } from "@/lib/utils";
+import Link from "next/link";
 import type { Team, TeamMember, Invitation } from "@/lib/supabase/types";
 
 export default function TeamPage() {
@@ -42,6 +44,11 @@ export default function TeamPage() {
     },
     enabled: !!user,
   });
+
+  // "Deleted" teams are fetched but never rendered anywhere — that's what
+  // makes delete invisible in the UI while the row/membership stay intact.
+  const activeTeams = teams.filter((t) => t.status === "active");
+  const archivedTeams = teams.filter((t) => t.status === "archived");
 
   const createTeam = useMutation({
     mutationFn: async (name: string) => {
@@ -93,7 +100,7 @@ export default function TeamPage() {
     },
   });
 
-  const activeTeam = teams[0] as (Team & { myRole: string }) | undefined;
+  const activeTeam = activeTeams[0] as (Team & { myRole: string }) | undefined;
   const isManager = activeTeam?.myRole === "head_coach";
 
   // All invitations
@@ -234,9 +241,12 @@ export default function TeamPage() {
         </Card>
       ) : (
         <Card className="flex flex-col gap-4 p-6">
-          <CardHeader>
-            <CardTitle>{activeTeam.name}</CardTitle>
-            <CardDescription>Your role: {activeTeam.myRole}</CardDescription>
+          <CardHeader className="flex flex-row items-start justify-between">
+            <div>
+              <CardTitle>{activeTeam.name}</CardTitle>
+              <CardDescription>Your role: {activeTeam.myRole}</CardDescription>
+            </div>
+            <LeaveTeamDialog team={activeTeam} />
           </CardHeader>
           <MemberList
             teamId={activeTeam.id}
@@ -316,6 +326,35 @@ export default function TeamPage() {
               </div>
             );
           })}
+        </Card>
+      )}
+
+      {/* Archived Teams */}
+      {archivedTeams.length > 0 && (
+        <Card className="flex flex-col gap-4 p-6">
+          <CardHeader>
+            <CardTitle>Archived Teams</CardTitle>
+            <CardDescription>
+              Read-only. View past rosters, footage, and projects anytime.
+            </CardDescription>
+          </CardHeader>
+          {archivedTeams.map((t) => (
+            <Link
+              key={t.id}
+              href={`/team/archived/${t.id}`}
+              className="flex items-center justify-between rounded-xl border border-border p-3 hover:border-muted"
+            >
+              <div className="flex items-center gap-2">
+                <Archive className="h-3.5 w-3.5 text-muted" />
+                <span className="text-sm font-medium">{t.name}</span>
+              </div>
+              {t.archived_at && (
+                <span className="text-xs text-muted">
+                  Archived {new Date(t.archived_at).toLocaleDateString()}
+                </span>
+              )}
+            </Link>
+          ))}
         </Card>
       )}
     </div>

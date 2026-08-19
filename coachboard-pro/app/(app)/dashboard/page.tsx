@@ -42,7 +42,8 @@ export default function DashboardPage() {
       const { data: teams } = await supabase
         .from("teams")
         .select("created_by")
-        .in("id", teamIds);
+        .in("id", teamIds)
+        .eq("status", "active");
       if (!teams?.length) return false;
       const ownerIds = (teams as { created_by: string }[]).map((t) => t.created_by);
       const { data: owners } = await supabase

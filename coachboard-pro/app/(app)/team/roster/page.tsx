@@ -17,12 +17,13 @@ export default function RosterPage() {
       if (!user) return null;
       const { data } = await supabase
         .from("team_members")
-        .select("team_id, role")
+        .select("team_id, role, teams(status)")
         .eq("user_id", user.id)
-        .eq("status", "accepted")
-        .limit(1)
-        .single();
-      return data as { team_id: string; role: string } | null;
+        .eq("status", "accepted");
+      const active = (data ?? []).find(
+        (m) => (m.teams as unknown as { status: string } | null)?.status === "active"
+      );
+      return active ? { team_id: active.team_id, role: active.role } : null;
     },
     enabled: !!user,
   });

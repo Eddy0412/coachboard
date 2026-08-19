@@ -14,14 +14,18 @@ export function useProjects() {
     queryFn: async () => {
       if (!user) return [];
 
-      // Get projects from teams user belongs to
+      // Get projects from active teams user belongs to (archived/deleted
+      // teams are intentionally excluded — their projects only appear via
+      // the read-only Archived Teams viewer, not the main dashboard)
       const { data: teamMembers } = await supabase
         .from("team_members")
-        .select("team_id")
+        .select("team_id, teams(status)")
         .eq("user_id", user.id)
         .eq("status", "accepted");
 
-      const teamIds = teamMembers?.map((tm) => tm.team_id) ?? [];
+      const teamIds = (teamMembers ?? [])
+        .filter((tm) => (tm.teams as unknown as { status: string } | null)?.status === "active")
+        .map((tm) => tm.team_id);
 
       // Also get projects where user has direct access
       const { data: directAccess } = await supabase

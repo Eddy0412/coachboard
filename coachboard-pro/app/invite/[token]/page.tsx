@@ -8,7 +8,14 @@ import { LoginForm } from "@/components/auth/login-form";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/components/ui/toast";
+import { LeaveTeamDialog } from "@/components/team/leave-team-dialog";
 import type { Invitation } from "@/lib/supabase/types";
+
+interface ExistingTeam {
+  id: string;
+  name: string;
+  role: string;
+}
 
 export default function InvitePage({
   params,
@@ -23,6 +30,7 @@ export default function InvitePage({
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState<"signup" | "login">("signup");
   const [accepting, setAccepting] = useState(false);
+  const [existingTeam, setExistingTeam] = useState<ExistingTeam | null>(null);
 
   // Fetch invitation via API route (bypasses RLS for unauthenticated users)
   useEffect(() => {
@@ -45,7 +53,7 @@ export default function InvitePage({
 
   // If user is logged in, accept the invite
   useEffect(() => {
-    if (authLoading || !user || !invitation || accepting) return;
+    if (authLoading || !user || !invitation || accepting || existingTeam) return;
 
     const acceptInvite = async () => {
       setAccepting(true);
@@ -57,11 +65,16 @@ export default function InvitePage({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           invitationId: invitation.id,
-          userId: user.id,
         }),
       });
 
       if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        if (data?.code === "ALREADY_ON_TEAM" && data.existingTeam) {
+          setExistingTeam(data.existingTeam);
+          setAccepting(false);
+          return;
+        }
         toast("Failed to accept invitation.", "error");
         setAccepting(false);
         return;
@@ -72,7 +85,7 @@ export default function InvitePage({
     };
 
     acceptInvite();
-  }, [user, invitation, authLoading, accepting, router, toast]);
+  }, [user, invitation, authLoading, accepting, existingTeam, router, toast]);
 
   if (loading || authLoading) {
     return (
@@ -97,6 +110,29 @@ export default function InvitePage({
           >
             Go to login
           </Button>
+        </Card>
+      </div>
+    );
+  }
+
+  if (existingTeam) {
+    return (
+      <div className="flex min-h-screen items-center justify-center px-4">
+        <Card className="max-w-sm p-6 text-center">
+          <h2 className="mb-2 text-lg font-bold">You're already on a team</h2>
+          <p className="text-sm text-muted">
+            You're currently on <strong>{existingTeam.name}</strong> as {existingTeam.role}.
+            Leave it to join this team instead.
+          </p>
+          <div className="mt-4 flex justify-center">
+            <LeaveTeamDialog
+              team={{ id: existingTeam.id, name: existingTeam.name, myRole: existingTeam.role }}
+              trigger={
+                <Button variant="danger">Leave {existingTeam.name} & continue</Button>
+              }
+              onLeft={() => setExistingTeam(null)}
+            />
+          </div>
         </Card>
       </div>
     );
