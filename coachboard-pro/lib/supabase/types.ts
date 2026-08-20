@@ -1,6 +1,8 @@
 export type UserRole = "head_coach" | "coach" | "athlete";
 export type TeamMemberStatus = "pending" | "accepted" | "declined";
 export type TeamStatus = "active" | "archived" | "deleted";
+export type ArticleCategory = "kba" | "doc";
+export type ArticleStatus = "draft" | "published";
 export type SubscriptionStatus = "free" | "pro" | "canceled";
 export type ProjectPermission = "admin" | "write" | "read";
 export type InvitationStatus = "pending" | "accepted" | "expired";
@@ -20,6 +22,7 @@ export interface Profile {
   stripe_subscription_id: string | null;
   payment_provider: PaymentProvider;
   grandfathered: boolean;
+  is_staff: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -182,6 +185,22 @@ export interface ShareLink {
   created_at: string;
 }
 
+export interface Article {
+  id: string;
+  category: ArticleCategory;
+  status: ArticleStatus;
+  slug: string;
+  title: string;
+  topic: string;
+  description: string;
+  cause: string | null;
+  resolution: string;
+  youtube_video_id: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Invitation {
   id: string;
   team_id: string;
@@ -220,6 +239,7 @@ export interface Database {
       notifications: TableDef<Notification>;
       share_links: TableDef<ShareLink>;
       invitations: TableDef<Invitation>;
+      articles: TableDef<Article>;
       pf_subscriptions: TableDef<PfSubscription>;
       pf_payment_log: TableDef<PfPaymentLog>;
     };
@@ -233,6 +253,8 @@ export interface Database {
       invitation_status: InvitationStatus;
       drawing_tool: DrawingTool;
       team_status: TeamStatus;
+      article_category: ArticleCategory;
+      article_status: ArticleStatus;
     };
   };
 }

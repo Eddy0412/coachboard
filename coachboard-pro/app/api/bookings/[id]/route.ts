@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { createClient as createServerSupabaseClient } from "@/lib/supabase/server";
 
 function getSupabaseAdmin() {
   return createClient(
@@ -8,12 +9,28 @@ function getSupabaseAdmin() {
   );
 }
 
-// PATCH — approve or decline a booking
+// PATCH — approve or decline a booking (staff only)
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const authClient = await createServerSupabaseClient();
+    const {
+      data: { user },
+    } = await authClient.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const { data: profile } = await authClient
+      .from("profiles")
+      .select("is_staff")
+      .eq("id", user.id)
+      .single();
+    if (!profile?.is_staff) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const { id } = await params;
     const body = await request.json();
     const { action, adminNotes } = body as {

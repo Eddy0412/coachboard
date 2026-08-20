@@ -5,6 +5,14 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export function slugify(title: string): string {
+  return title
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 /** Clipboard copy with fallback for non-HTTPS contexts (e.g. localhost) */
 export function copyToClipboard(text: string): boolean {
   if (navigator.clipboard?.writeText) {
