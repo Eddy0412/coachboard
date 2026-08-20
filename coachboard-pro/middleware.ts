@@ -32,7 +32,7 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Protected routes: require auth
-  const protectedPaths = ["/dashboard", "/projects", "/team", "/notifications", "/settings"];
+  const protectedPaths = ["/dashboard", "/projects", "/team", "/notifications", "/settings", "/support", "/admin"];
   const isProtected = protectedPaths.some((p) => pathname.startsWith(p));
   const isShared = pathname.startsWith("/shared/");
 
