@@ -132,6 +132,9 @@ export interface Timestamp {
   los: string | null;
   hash: string | null;
   action: string | null;
+  target_x: number | null;
+  target_y: number | null;
+  pass_result: "complete" | "incomplete" | "interception" | null;
   sort_order: number;
   created_by: string;
   created_at: string;

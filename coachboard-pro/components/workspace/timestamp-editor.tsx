@@ -1,10 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type MouseEvent } from "react";
 import { useWorkspaceStore } from "@/stores/workspace";
 import { useAutoSaveTimestamp, useDeleteTimestamp, useUpdateTimestamp } from "@/hooks/use-timestamps";
 import { formatTime } from "@/lib/youtube";
-import { ODK_OPTIONS, DOWN_OPTIONS, HASH_OPTIONS, ACTION_OPTIONS } from "@/lib/constants";
+import {
+  ODK_OPTIONS,
+  DOWN_OPTIONS,
+  HASH_OPTIONS,
+  ACTION_OPTIONS,
+  PASS_TARGET_MAX_DEPTH_YDS,
+  PASS_TARGET_YARD_TICKS,
+  PASS_TARGET_LOS_Y,
+  PASS_RESULT_OPTIONS,
+} from "@/lib/constants";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -83,10 +92,23 @@ export function TimestampEditor({
     }
   };
 
-  const handleToggle = (field: "odk" | "down" | "hash" | "action", value: string) => {
+  const handleToggle = (field: "odk" | "down" | "hash" | "action" | "pass_result", value: string) => {
     if (!timestamp || !canEdit) return;
     const newVal = timestamp[field] === value ? null : value;
     updateTimestamp.mutate({ id: timestamp.id, [field]: newVal });
+  };
+
+  const handleTargetClick = (e: MouseEvent<HTMLDivElement>) => {
+    if (!timestamp || !canEdit) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+    const y = Math.min(1, Math.max(0, (e.clientY - rect.top) / rect.height));
+    updateTimestamp.mutate({ id: timestamp.id, target_x: x, target_y: y });
+  };
+
+  const handleClearTarget = () => {
+    if (!timestamp || !canEdit) return;
+    updateTimestamp.mutate({ id: timestamp.id, target_x: null, target_y: null });
   };
 
   const handleDelete = () => {
@@ -248,6 +270,86 @@ export function TimestampEditor({
               ))}
             </div>
           </div>
+
+          {/* Pass Target — click to mark where the ball landed */}
+          {timestamp.action === "Pass" && (
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted">Pass Target</span>
+                {timestamp.target_x != null && canEdit && (
+                  <button
+                    onClick={handleClearTarget}
+                    className="text-[10px] text-muted hover:text-danger transition-colors"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+              <div
+                onClick={canEdit ? handleTargetClick : undefined}
+                className={cn(
+                  "relative h-24 rounded-lg border border-border bg-input/50 overflow-hidden",
+                  canEdit && "cursor-crosshair"
+                )}
+              >
+                <div className="absolute inset-y-0 left-1/3 border-l border-dashed border-muted/40" />
+                <div className="absolute inset-y-0 left-2/3 border-l border-dashed border-muted/40" />
+                {PASS_TARGET_YARD_TICKS.map((yd) => {
+                  const topPct = PASS_TARGET_LOS_Y * (1 - yd / PASS_TARGET_MAX_DEPTH_YDS) * 100;
+                  return (
+                    <div key={yd} className="absolute inset-x-0 border-t border-dashed border-muted/30" style={{ top: `${topPct}%` }}>
+                      <span
+                        className="absolute right-1 text-[8px] text-muted"
+                        style={{ top: 0, transform: "translateY(-50%)" }}
+                      >
+                        {yd}
+                      </span>
+                    </div>
+                  );
+                })}
+                {/* LOS line — space below is the behind-the-line (screen/shovel) zone */}
+                <div className="absolute inset-x-0 border-t border-primary/60" style={{ top: `${PASS_TARGET_LOS_Y * 100}%` }}>
+                  <span className="absolute left-1.5 text-[8px] font-semibold uppercase tracking-wide text-primary" style={{ top: 0, transform: "translateY(-50%)" }}>
+                    LOS
+                  </span>
+                </div>
+                <span className="absolute top-1 left-1.5 text-[9px] uppercase tracking-wide text-muted">Deep</span>
+                <span className="absolute bottom-1 left-1.5 text-[8px] uppercase tracking-wide text-muted">Behind LOS</span>
+                {timestamp.target_x != null && timestamp.target_y != null && (
+                  <div
+                    className="absolute h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/70 bg-primary"
+                    style={{ left: `${timestamp.target_x * 100}%`, top: `${timestamp.target_y * 100}%` }}
+                  />
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="w-12 shrink-0 text-xs text-muted">Result</span>
+                <div className="flex gap-1">
+                  {PASS_RESULT_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => handleToggle("pass_result", opt.value)}
+                      disabled={!canEdit}
+                      className={cn(
+                        "rounded-lg px-2.5 py-1 text-xs font-medium transition-colors",
+                        timestamp.pass_result === opt.value
+                          ? opt.variant === "success"
+                            ? "bg-success/10 border border-success/30 text-success"
+                            : opt.variant === "danger"
+                              ? "bg-danger/10 border border-danger-br text-danger"
+                              : "bg-warning/10 border border-warning/30 text-warning"
+                          : "border border-border text-muted hover:text-text",
+                        !canEdit && "cursor-default opacity-70"
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <Link href="/settings/billing" className="block">

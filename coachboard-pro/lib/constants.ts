@@ -53,5 +53,18 @@ export const HASH_OPTIONS = [
 
 export const ACTION_OPTIONS = ["Run", "Pass", "Kick", "Trick"] as const;
 
+// Pass target picker: normalized y=0 (top) is this many yards past the LOS.
+// The LOS itself sits at PASS_TARGET_LOS_Y (not y=1) so the space below it can capture
+// passes thrown behind the line (screens, shovels) instead of clamping them at the LOS.
+export const PASS_TARGET_MAX_DEPTH_YDS = 40;
+export const PASS_TARGET_YARD_TICKS = [10, 20, 30] as const;
+export const PASS_TARGET_LOS_Y = 0.75;
+
+export const PASS_RESULT_OPTIONS = [
+  { value: "complete", label: "Complete", variant: "success" as const },
+  { value: "incomplete", label: "Incomplete", variant: "warning" as const },
+  { value: "interception", label: "INT", variant: "danger" as const },
+] as const;
+
 // Debounce timing for auto-save (ms)
 export const AUTOSAVE_DEBOUNCE_MS = 1000;
