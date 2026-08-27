@@ -363,7 +363,7 @@ export function PricingCards() {
                 onClick={handleYappyRequest}
                 disabled={yappyLoading || !yappyName.trim() || !yappyPhone.trim()}
               >
-                {yappyLoading ? "Submitting..." : "Submit Request — $240/yr"}
+                {yappyLoading ? "Submitting..." : "Submit Request — $299/yr"}
               </Button>
             </div>
           )}
