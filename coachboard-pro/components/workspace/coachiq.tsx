@@ -403,12 +403,19 @@ export function CoachIQ({
     `;
     popup.document.head.appendChild(style);
 
+    // Absolute URL — the popup document's own URL is "about:blank", so a relative
+    // "/logo.png" path would resolve against that instead of the app's origin.
+    const logoSrc = `${window.location.origin}/logo.png`;
+
     const rootEl = popup.document.createElement("div");
     popup.document.body.appendChild(rootEl);
     const root = createRoot(rootEl);
     root.render(
       <div>
-        <h1>CoachIQ Scout Report</h1>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+          <h1>CoachIQ Scout Report</h1>
+          <img src={logoSrc} alt="" width={40} height={40} style={{ opacity: 0.55, filter: "grayscale(0.15)" }} />
+        </div>
         {generatedAt && (
           <p style={{ fontSize: 12, color: "#555555", marginTop: 4, marginBottom: 20 }}>
             Generated {formatDate(generatedAt)}
@@ -454,6 +461,9 @@ export function CoachIQ({
             <pre>{report}</pre>
           </div>
         )}
+        <p style={{ marginTop: 24, paddingTop: 10, borderTop: "1px solid #e5e7eb", fontSize: 10.5, color: "#8a8f98", fontStyle: "italic" }}>
+          This report was generated with Coachboard.
+        </p>
       </div>
     );
 
