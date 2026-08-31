@@ -1,7 +1,15 @@
 import { NextRequest } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@supabase/supabase-js";
+import { createClient as createServerSupabaseClient } from "@/lib/supabase/server";
 import type { Timestamp } from "@/lib/supabase/types";
+
+const MODEL = "claude-opus-4-7";
+
+// $/1M tokens — update alongside MODEL if the model changes.
+const PRICING: Record<string, { input: number; output: number }> = {
+  "claude-opus-4-7": { input: 5, output: 25 },
+};
 
 function getSupabaseAdmin() {
   return createClient(
@@ -75,11 +83,28 @@ export async function POST(req: NextRequest) {
     return new Response("No timestamps to analyze.", { status: 400 });
   }
 
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return new Response("ANTHROPIC_API_KEY is not configured.", { status: 500 });
+  const authClient = await createServerSupabaseClient();
+  const {
+    data: { user },
+  } = await authClient.auth.getUser();
+  if (!user) {
+    return new Response("Unauthorized", { status: 401 });
   }
 
   const supabase = getSupabaseAdmin();
+
+  const { data: callerProfile } = await supabase
+    .from("profiles")
+    .select("subscription_status")
+    .eq("id", user.id)
+    .single();
+  if (callerProfile?.subscription_status !== "pro") {
+    return new Response("CoachIQ is a Pro feature.", { status: 403 });
+  }
+
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return new Response("ANTHROPIC_API_KEY is not configured.", { status: 500 });
+  }
 
   // Fetch all comments for these timestamps
   const tsIds = timestamps.map((t) => t.id);
@@ -176,7 +201,7 @@ Be specific and use percentages. Reference actual plays from the data where rele
     async start(controller) {
       try {
         const stream = anthropic.messages.stream({
-          model: "claude-opus-4-7",
+          model: MODEL,
           max_tokens: 4096,
           system: systemPrompt,
           messages: [{ role: "user", content: userPrompt }],
@@ -189,6 +214,23 @@ Be specific and use percentages. Reference actual plays from the data where rele
             controller.enqueue(new TextEncoder().encode(event.delta.text));
           }
         }
+
+        const finalMessage = await stream.finalMessage();
+        const { input_tokens, output_tokens } = finalMessage.usage;
+        const pricing = PRICING[MODEL];
+        const cost = pricing
+          ? (input_tokens / 1_000_000) * pricing.input + (output_tokens / 1_000_000) * pricing.output
+          : 0;
+        await supabase.from("api_usage_log").insert({
+          user_id: user.id,
+          project_id: projectId ?? null,
+          feature: "coachiq_report",
+          model: MODEL,
+          input_tokens,
+          output_tokens,
+          estimated_cost_usd: cost,
+        });
+
         controller.close();
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
