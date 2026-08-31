@@ -5,6 +5,17 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/** Compact number formatting for stat tiles: 1284 -> "1,284", 12900 -> "12.9K" */
+export function formatCompact(n: number): string {
+  if (Math.abs(n) < 1000) return n.toLocaleString("en-US");
+  return new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 }).format(n);
+}
+
+/** USD formatting for cost figures: 0 -> "$0.00", 12.3456 -> "$12.35" */
+export function formatUsd(n: number): string {
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
+}
+
 export function slugify(title: string): string {
   return title
     .toLowerCase()

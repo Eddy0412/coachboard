@@ -24,6 +24,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   ShieldCheck,
+  BarChart3,
 } from "lucide-react";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
@@ -37,6 +38,7 @@ const NAV_ITEMS = [
   { href: "/settings", label: "Settings", icon: Settings },
   { href: "/settings/footage", label: "Footage Services", icon: Video, coachOnly: true },
   { href: "/settings/billing", label: "Billing", icon: CreditCard, coachOnly: true },
+  { href: "/admin/stats", label: "Stats", icon: BarChart3, staffOnly: true },
   { href: "/admin/articles", label: "Articles", icon: ShieldCheck, staffOnly: true },
 ];
 
@@ -84,7 +86,7 @@ export function Sidebar() {
         )}
       </div>
 
-      <nav className="flex flex-1 flex-col gap-1 p-2 overflow-hidden">
+      <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-2">
         {NAV_ITEMS.filter(
           (item) =>
             (!item.coachOnly || !athleteUser) && (!item.staffOnly || profile?.is_staff)

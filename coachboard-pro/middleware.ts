@@ -43,6 +43,21 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // Staff-only routes: non-staff users are bounced before the page ever
+  // renders, instead of hitting a client-side "Staff access required" page.
+  if (pathname.startsWith("/admin") && user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("is_staff")
+      .eq("id", user.id)
+      .single();
+    if (!profile?.is_staff) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/dashboard";
+      return NextResponse.redirect(url);
+    }
+  }
+
   // If logged in user visits auth pages, redirect to dashboard
   const authPaths = ["/login", "/signup", "/forgot-password"];
   if (user && authPaths.includes(pathname)) {
