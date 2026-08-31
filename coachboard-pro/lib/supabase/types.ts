@@ -199,6 +199,7 @@ export interface Article {
   cause: string | null;
   resolution: string;
   youtube_video_id: string | null;
+  youtube_start_seconds: number | null;
   created_by: string;
   created_at: string;
   updated_at: string;

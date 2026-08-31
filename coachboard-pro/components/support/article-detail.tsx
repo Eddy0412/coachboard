@@ -19,7 +19,9 @@ export function ArticleDetail({ article }: { article: Article }) {
         <Card className="max-w-xl overflow-hidden p-0">
           <div className="aspect-video w-full">
             <iframe
-              src={`https://www.youtube.com/embed/${article.youtube_video_id}?rel=0`}
+              src={`https://www.youtube.com/embed/${article.youtube_video_id}?rel=0${
+                article.youtube_start_seconds ? `&start=${article.youtube_start_seconds}` : ""
+              }`}
               title={article.title}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen

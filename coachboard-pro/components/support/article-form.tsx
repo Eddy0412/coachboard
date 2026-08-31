@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { slugify } from "@/lib/utils";
-import { parseYouTubeId } from "@/lib/youtube";
+import { parseYouTubeId, parseYouTubeStart } from "@/lib/youtube";
 import type { Article, ArticleCategory, ArticleStatus } from "@/lib/supabase/types";
 
 interface ArticleFormProps {
@@ -35,6 +35,9 @@ export function ArticleForm({ article }: ArticleFormProps) {
   const [cause, setCause] = useState(article?.cause ?? "");
   const [resolution, setResolution] = useState(article?.resolution ?? "");
   const [videoInput, setVideoInput] = useState(article?.youtube_video_id ?? "");
+  const [startInput, setStartInput] = useState(
+    article?.youtube_start_seconds != null ? String(article.youtube_start_seconds) : ""
+  );
 
   const save = useMutation({
     mutationFn: async () => {
@@ -44,6 +47,9 @@ export function ArticleForm({ article }: ArticleFormProps) {
           ? parseYouTubeId(trimmedVideo) || trimmedVideo
           : trimmedVideo
         : null;
+
+      const trimmedStart = startInput.trim();
+      const startSeconds = trimmedStart ? Number(trimmedStart) : null;
 
       const payload = {
         category,
@@ -55,6 +61,7 @@ export function ArticleForm({ article }: ArticleFormProps) {
         cause: cause.trim() || null,
         resolution: resolution.trim(),
         youtube_video_id: videoId,
+        youtube_start_seconds: videoId && startSeconds != null && !Number.isNaN(startSeconds) ? startSeconds : null,
       };
 
       if (article) {
@@ -152,13 +159,32 @@ export function ArticleForm({ article }: ArticleFormProps) {
         <Textarea value={resolution} onChange={(e) => setResolution(e.target.value)} rows={8} required />
       </div>
 
-      <div className="flex flex-col gap-1.5">
-        <label className="text-xs font-medium text-muted">Tutorial video (YouTube URL or ID, optional)</label>
-        <Input
-          value={videoInput}
-          onChange={(e) => setVideoInput(e.target.value)}
-          placeholder="https://youtu.be/..."
-        />
+      <div className="flex gap-4">
+        <div className="flex flex-[2] flex-col gap-1.5">
+          <label className="text-xs font-medium text-muted">Tutorial video (YouTube URL or ID, optional)</label>
+          <Input
+            value={videoInput}
+            onChange={(e) => {
+              const val = e.target.value;
+              setVideoInput(val);
+              if (val.includes("youtu")) {
+                const start = parseYouTubeStart(val);
+                if (start != null) setStartInput(String(start));
+              }
+            }}
+            placeholder="https://youtu.be/..."
+          />
+        </div>
+        <div className="flex flex-1 flex-col gap-1.5">
+          <label className="text-xs font-medium text-muted">Start time (seconds)</label>
+          <Input
+            type="number"
+            min={0}
+            value={startInput}
+            onChange={(e) => setStartInput(e.target.value)}
+            placeholder="0"
+          />
+        </div>
       </div>
 
       <div className="flex justify-end gap-2">
