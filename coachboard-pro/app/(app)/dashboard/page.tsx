@@ -86,13 +86,15 @@ export default function DashboardPage() {
                 }}
               >
                 <Lock className="h-4 w-4" />
-                New project (limit reached)
+                <span className="sm:hidden">Limit reached</span>
+                <span className="hidden sm:inline">New project (limit reached)</span>
               </Button>
             ) : (
               <Link href="/projects/new">
                 <Button variant="primary">
                   <Plus className="h-4 w-4" />
-                  New project
+                  <span className="sm:hidden">New</span>
+                  <span className="hidden sm:inline">New project</span>
                 </Button>
               </Link>
             )

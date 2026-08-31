@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
@@ -57,6 +58,18 @@ export function Sidebar() {
   const supportOpen = pathname.startsWith("/support");
   const [supportExpanded, setSupportExpanded] = useState(supportOpen);
   const [collapsed, setCollapsed] = useState(false);
+  const isMobile = useIsMobile();
+  const autoCollapsedRef = useRef(false);
+
+  // Start collapsed on phones so the sidebar doesn't eat most of the
+  // viewport width — but only force it once, so it doesn't fight a
+  // manual expand/collapse the user makes afterward.
+  useEffect(() => {
+    if (isMobile && !autoCollapsedRef.current) {
+      autoCollapsedRef.current = true;
+      setCollapsed(true);
+    }
+  }, [isMobile]);
 
   const handleSignOut = async () => {
     await signOut();

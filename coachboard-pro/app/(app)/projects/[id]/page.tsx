@@ -368,7 +368,7 @@ export default function ProjectPage({
             <Link href={`/projects/${id}/settings`}>
               <Button variant="ghost" size="sm">
                 <Settings className="h-4 w-4" />
-                Settings
+                <span className="hidden sm:inline">Settings</span>
               </Button>
             </Link>
           )}
