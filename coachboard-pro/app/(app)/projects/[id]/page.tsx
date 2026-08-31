@@ -1,6 +1,6 @@
 "use client";
 
-import React, { use, useEffect, useMemo, useState } from "react";
+import React, { use, useEffect, useMemo, useRef, useState } from "react";
 import { useProject } from "@/hooks/use-project";
 import { formatTime } from "@/lib/youtube";
 import {
@@ -34,6 +34,7 @@ import { Button } from "@/components/ui/button";
 import { Columns3, LayoutPanelTop, Film, ChevronLeft, ChevronRight, Repeat, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useWorkspaceLayout } from "@/hooks/use-workspace-layout";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 import type { Athlete, ProjectAccess, TeamMember, TimestampAthlete } from "@/lib/supabase/types";
 
@@ -58,9 +59,20 @@ export default function ProjectPage({
   const { getCurrentTime, seekTo } = useYouTubePlayer("yt-player");
 
   const { layout, setLayout } = useWorkspaceLayout();
+  const isMobile = useIsMobile();
   const [filmroomPanelOpen, setFilmroomPanelOpen] = useState(true);
   const [filmroomAutoplay, setFilmroomAutoplay] = useState(true);
   const [tsFilter, setTsFilter] = useState("");
+
+  // On phones, start with the timestamp panel tucked away so the video gets
+  // the full (narrow) width — it's one tap to bring back via the edge tab.
+  const autoClosedPanelRef = useRef(false);
+  useEffect(() => {
+    if (isMobile && !autoClosedPanelRef.current) {
+      autoClosedPanelRef.current = true;
+      setFilmroomPanelOpen(false);
+    }
+  }, [isMobile]);
 
   const { data: project, isLoading: projectLoading } = useProject(id);
   const { data: timestamps = [] } = useTimestamps(id);

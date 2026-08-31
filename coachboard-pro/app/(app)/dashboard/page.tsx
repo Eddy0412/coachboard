@@ -80,26 +80,25 @@ export default function DashboardPage() {
             atLimit ? (
               <Button
                 variant="default"
+                title="Free plan limit reached"
                 onClick={() => {
                   toast(`Free plan is limited to ${FREE_LIMITS.maxProjects} projects. Upgrade to Pro for unlimited.`, "error");
                   router.push("/settings/billing");
                 }}
               >
                 <Lock className="h-4 w-4" />
-                <span className="sm:hidden">Limit reached</span>
                 <span className="hidden sm:inline">New project (limit reached)</span>
               </Button>
             ) : (
               <Link href="/projects/new">
-                <Button variant="primary">
+                <Button variant="primary" title="New project">
                   <Plus className="h-4 w-4" />
-                  <span className="sm:hidden">New</span>
                   <span className="hidden sm:inline">New project</span>
                 </Button>
               </Link>
             )
           )}
-          <div className="flex rounded-lg border border-border">
+          <div className="hidden rounded-lg border border-border sm:flex">
             <button
               type="button"
               onClick={() => setView("panel")}

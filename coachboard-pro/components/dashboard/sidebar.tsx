@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
@@ -26,6 +26,7 @@ import {
   PanelLeftOpen,
   ShieldCheck,
   BarChart3,
+  X,
 } from "lucide-react";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
@@ -50,7 +51,13 @@ const SUPPORT_ITEMS = [
   { href: "/support/tickets", label: "Support Tickets", icon: Ticket },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  /** Mobile-drawer visibility — ignored on desktop, where the sidebar is always inline. */
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
+}
+
+export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { profile, signOut } = useAuth();
@@ -59,160 +66,179 @@ export function Sidebar() {
   const [supportExpanded, setSupportExpanded] = useState(supportOpen);
   const [collapsed, setCollapsed] = useState(false);
   const isMobile = useIsMobile();
-  const autoCollapsedRef = useRef(false);
 
-  // Start collapsed on phones so the sidebar doesn't eat most of the
-  // viewport width — but only force it once, so it doesn't fight a
-  // manual expand/collapse the user makes afterward.
-  useEffect(() => {
-    if (isMobile && !autoCollapsedRef.current) {
-      autoCollapsedRef.current = true;
-      setCollapsed(true);
-    }
-  }, [isMobile]);
+  // On mobile the sidebar is a full-width drawer, never a permanent rail —
+  // it's not rendered at all until opened, and always shows full labels.
+  if (isMobile && !mobileOpen) return null;
+  const effectiveCollapsed = isMobile ? false : collapsed;
 
   const handleSignOut = async () => {
     await signOut();
     router.push("/");
   };
 
-  return (
-    <aside
-      className={cn(
-        "flex h-screen flex-col border-r border-border bg-card transition-all duration-200",
-        collapsed ? "w-16" : "w-60"
-      )}
-    >
-      <div className="flex items-center gap-2 border-b border-border px-4 py-4 min-h-[57px]">
-        <Image src="/logo.png" alt="Coachboard Pro logo" width={24} height={24} className="shrink-0" />
-        {!collapsed && (
-          <>
-            <Link href="/dashboard" className="text-lg font-extrabold truncate">
-              Coachboard
-            </Link>
-            {!athleteUser && (
-              <Badge variant={profile?.subscription_status === "pro" ? "primary" : "default"}>
-                {profile?.subscription_status === "pro" ? "Pro" : "Free"}
-              </Badge>
-            )}
-          </>
-        )}
-      </div>
+  const closeIfMobile = () => {
+    if (isMobile) onMobileClose?.();
+  };
 
-      <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-2">
-        {NAV_ITEMS.filter(
-          (item) =>
-            (!item.coachOnly || !athleteUser) && (!item.staffOnly || profile?.is_staff)
-        ).map(
-          (item) => {
+  return (
+    <>
+      {isMobile && (
+        <div
+          className="fixed inset-0 z-40 bg-black/60"
+          onClick={onMobileClose}
+          aria-hidden="true"
+        />
+      )}
+      <aside
+        className={cn(
+          "flex h-screen flex-col border-r border-border bg-card transition-all duration-200",
+          isMobile ? "fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] shadow-2xl" : "relative",
+          effectiveCollapsed ? "w-16" : isMobile ? "" : "w-60"
+        )}
+      >
+        <div className="flex items-center gap-2 border-b border-border px-4 py-4 min-h-[57px]">
+          <Image src="/logo.png" alt="Coachboard Pro logo" width={24} height={24} className="shrink-0" />
+          {!effectiveCollapsed && (
+            <>
+              <Link href="/dashboard" className="text-lg font-extrabold truncate" onClick={closeIfMobile}>
+                Coachboard
+              </Link>
+              {!athleteUser && (
+                <Badge variant={profile?.subscription_status === "pro" ? "primary" : "default"}>
+                  {profile?.subscription_status === "pro" ? "Pro" : "Free"}
+                </Badge>
+              )}
+            </>
+          )}
+          {isMobile && (
+            <button
+              type="button"
+              onClick={onMobileClose}
+              aria-label="Close menu"
+              className="ml-auto rounded-lg p-1.5 text-muted hover:bg-input hover:text-text transition-colors"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          )}
+        </div>
+
+        <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-2">
+          {NAV_ITEMS.filter(
+            (item) =>
+              (!item.coachOnly || !athleteUser) && (!item.staffOnly || profile?.is_staff)
+          ).map(
+            (item) => {
+              const Icon = item.icon;
+              const isActive =
+                pathname === item.href ||
+                (item.href !== "/dashboard" && pathname.startsWith(item.href));
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  title={effectiveCollapsed ? item.label : undefined}
+                  onClick={closeIfMobile}
+                  className={cn(
+                    "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors",
+                    effectiveCollapsed ? "justify-center" : "",
+                    isActive
+                      ? "bg-primary-bg border border-primary-br text-text"
+                      : "text-muted hover:text-text hover:bg-input border border-transparent"
+                  )}
+                >
+                  <Icon className="h-4 w-4 shrink-0" />
+                  {!effectiveCollapsed && item.label}
+                </Link>
+              );
+            }
+          )}
+
+          <button
+            type="button"
+            title={effectiveCollapsed ? "Support" : undefined}
+            onClick={() => {
+              if (effectiveCollapsed) setCollapsed(false);
+              else setSupportExpanded((prev) => !prev);
+            }}
+            className={cn(
+              "mt-2 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors",
+              effectiveCollapsed ? "justify-center" : "",
+              supportOpen
+                ? "bg-primary-bg border border-primary-br text-text"
+                : "text-muted hover:text-text hover:bg-input border border-transparent"
+            )}
+          >
+            <HelpCircle className="h-4 w-4 shrink-0" />
+            {!effectiveCollapsed && (
+              <>
+                Support
+                <ChevronRight
+                  className={cn(
+                    "ml-auto h-3.5 w-3.5 transition-transform",
+                    supportExpanded && "rotate-90"
+                  )}
+                />
+              </>
+            )}
+          </button>
+          {!effectiveCollapsed && supportExpanded && SUPPORT_ITEMS.map((item) => {
             const Icon = item.icon;
-            const isActive =
-              pathname === item.href ||
-              (item.href !== "/dashboard" && pathname.startsWith(item.href));
+            const isActive = pathname === item.href || pathname.startsWith(item.href);
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                title={collapsed ? item.label : undefined}
+                onClick={closeIfMobile}
                 className={cn(
-                  "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors",
-                  collapsed ? "justify-center" : "",
+                  "ml-4 flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors",
                   isActive
                     ? "bg-primary-bg border border-primary-br text-text"
                     : "text-muted hover:text-text hover:bg-input border border-transparent"
                 )}
               >
-                <Icon className="h-4 w-4 shrink-0" />
-                {!collapsed && item.label}
+                <Icon className="h-3.5 w-3.5" />
+                {item.label}
               </Link>
             );
-          }
-        )}
+          })}
+        </nav>
 
-        <button
-          type="button"
-          title={collapsed ? "Support" : undefined}
-          onClick={() => {
-            if (collapsed) setCollapsed(false);
-            else setSupportExpanded((prev) => !prev);
-          }}
-          className={cn(
-            "mt-2 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors",
-            collapsed ? "justify-center" : "",
-            supportOpen
-              ? "bg-primary-bg border border-primary-br text-text"
-              : "text-muted hover:text-text hover:bg-input border border-transparent"
+        <div className="border-t border-border p-2">
+          {!effectiveCollapsed && (
+            <div className="mb-2 px-3 text-xs text-muted truncate">
+              {profile?.email}
+            </div>
           )}
-        >
-          <HelpCircle className="h-4 w-4 shrink-0" />
-          {!collapsed && (
-            <>
-              Support
-              <ChevronRight
-                className={cn(
-                  "ml-auto h-3.5 w-3.5 transition-transform",
-                  supportExpanded && "rotate-90"
-                )}
-              />
-            </>
-          )}
-        </button>
-        {!collapsed && supportExpanded && SUPPORT_ITEMS.map((item) => {
-          const Icon = item.icon;
-          const isActive = pathname === item.href || pathname.startsWith(item.href);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "ml-4 flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors",
-                isActive
-                  ? "bg-primary-bg border border-primary-br text-text"
-                  : "text-muted hover:text-text hover:bg-input border border-transparent"
-              )}
+          <button
+            onClick={handleSignOut}
+            title={effectiveCollapsed ? "Sign out" : undefined}
+            className={cn(
+              "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-muted hover:text-text hover:bg-input transition-colors",
+              effectiveCollapsed ? "justify-center" : ""
+            )}
+          >
+            <LogOut className="h-4 w-4 shrink-0" />
+            {!effectiveCollapsed && "Sign out"}
+          </button>
+          {!isMobile && (
+            <button
+              onClick={() => setCollapsed((prev) => !prev)}
+              title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              className="mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-muted hover:text-text hover:bg-input transition-colors"
             >
-              <Icon className="h-3.5 w-3.5" />
-              {item.label}
-            </Link>
-          );
-        })}
-      </nav>
-
-      <div className="border-t border-border p-2">
-        {!collapsed && (
-          <div className="mb-2 px-3 text-xs text-muted truncate">
-            {profile?.email}
-          </div>
-        )}
-        <button
-          onClick={handleSignOut}
-          title={collapsed ? "Sign out" : undefined}
-          className={cn(
-            "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-muted hover:text-text hover:bg-input transition-colors",
-            collapsed ? "justify-center" : ""
+              {collapsed ? (
+                <PanelLeftOpen className="h-4 w-4 shrink-0" />
+              ) : (
+                <>
+                  <PanelLeftClose className="h-4 w-4 shrink-0" />
+                  Collapse
+                </>
+              )}
+            </button>
           )}
-        >
-          <LogOut className="h-4 w-4 shrink-0" />
-          {!collapsed && "Sign out"}
-        </button>
-        <button
-          onClick={() => setCollapsed((prev) => !prev)}
-          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className={cn(
-            "mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-muted hover:text-text hover:bg-input transition-colors",
-            collapsed ? "justify-center" : ""
-          )}
-        >
-          {collapsed ? (
-            <PanelLeftOpen className="h-4 w-4 shrink-0" />
-          ) : (
-            <>
-              <PanelLeftClose className="h-4 w-4 shrink-0" />
-              Collapse
-            </>
-          )}
-        </button>
-      </div>
-    </aside>
+        </div>
+      </aside>
+    </>
   );
 }
