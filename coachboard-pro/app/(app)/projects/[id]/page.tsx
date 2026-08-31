@@ -1,6 +1,6 @@
 "use client";
 
-import React, { use, useEffect, useMemo, useRef, useState } from "react";
+import React, { use, useEffect, useMemo, useState } from "react";
 import { useProject } from "@/hooks/use-project";
 import { formatTime } from "@/lib/youtube";
 import {
@@ -63,16 +63,6 @@ export default function ProjectPage({
   const [filmroomPanelOpen, setFilmroomPanelOpen] = useState(true);
   const [filmroomAutoplay, setFilmroomAutoplay] = useState(true);
   const [tsFilter, setTsFilter] = useState("");
-
-  // On phones, start with the timestamp panel tucked away so the video gets
-  // the full (narrow) width — it's one tap to bring back via the edge tab.
-  const autoClosedPanelRef = useRef(false);
-  useEffect(() => {
-    if (isMobile && !autoClosedPanelRef.current) {
-      autoClosedPanelRef.current = true;
-      setFilmroomPanelOpen(false);
-    }
-  }, [isMobile]);
 
   const { data: project, isLoading: projectLoading } = useProject(id);
   const { data: timestamps = [] } = useTimestamps(id);
@@ -342,8 +332,8 @@ export default function ProjectPage({
           )}
         </div>
         <div className="flex items-center gap-2">
-          {/* Layout toggle */}
-          <div className="flex items-center rounded-lg border border-border p-1 gap-0.5">
+          {/* Layout toggle — desktop only; mobile always uses the dedicated stacked view below */}
+          <div className="hidden items-center rounded-lg border border-border p-1 gap-0.5 sm:flex">
             <button
               onClick={() => setLayout("balanced")}
               title="Balanced layout"
@@ -387,7 +377,38 @@ export default function ProjectPage({
         </div>
       </div>
 
-      {layout === "filmroom" ? (
+      {isMobile ? (
+        /*
+          MOBILE — a dedicated stacked view, not a squeeze of any desktop layout: the
+          three desktop layouts all assume real width (a floating overlay canvas, a
+          360px side column, or a multi-column grid) and break down at phone width.
+          Phone use here is realistically "watch film and read notes," so just stack
+          video -> controls -> timestamps in normal document flow, full-width, no
+          absolute positioning or fixed heights — the page itself scrolls.
+        */
+        <div className="flex flex-col gap-3">
+          <div className="relative">
+            <VideoPlayer videoId={project.youtube_id} />
+            <TelestrationCanvas timestampId={selectedTimestampId} canEdit={canEdit} />
+          </div>
+          <Card className="flex flex-col gap-2">
+            <VideoControls onAddTimestamp={handleAddTimestamp} canEdit={canEdit} />
+          </Card>
+          <Card className="flex flex-col gap-3">
+            <TimestampList
+              timestamps={visibleTimestamps}
+              athletes={athletes}
+              timestampAthletes={timestampAthletesMap}
+              onSelect={(tsId) => setSelectedTimestamp(tsId)}
+              onSeek={handleSeek}
+              teamId={project.team_id}
+              activeTimestampId={playingTimestampId}
+              filterValue={tsFilter}
+              onFilterChange={setTsFilter}
+            />
+          </Card>
+        </div>
+      ) : layout === "filmroom" ? (
         /*
           FILM ROOM: video fills full height, timestamps float left, controls float bottom
         */
