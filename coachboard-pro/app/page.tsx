@@ -5,16 +5,16 @@ import { Button } from "@/components/ui/button";
 export default function LandingPage() {
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="flex items-center justify-between border-b border-border px-6 py-4">
-        <div className="flex items-center gap-3">
-          <Image src="/logo.png" alt="Coachboard Pro logo" width={32} height={32} />
-          <h1 className="text-xl font-extrabold">Coachboard Pro</h1>
-          <span className="rounded-full border border-border bg-pill px-2.5 py-0.5 text-xs text-muted">
+      <header className="flex items-center justify-between border-b border-border px-4 py-4 sm:px-6">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+          <Image src="/logo.png" alt="Coachboard Pro logo" width={32} height={32} className="shrink-0" />
+          <h1 className="truncate text-lg font-extrabold sm:text-xl">Coachboard Pro</h1>
+          <span className="hidden shrink-0 rounded-full border border-border bg-pill px-2.5 py-0.5 text-xs text-muted sm:inline-flex">
             v2.0
           </span>
         </div>
-        <nav className="flex items-center gap-3">
-          <Link href="/login">
+        <nav className="flex shrink-0 items-center gap-3">
+          <Link href="/login" className="hidden sm:block">
             <Button variant="ghost">Sign in</Button>
           </Link>
           <Link href="/signup">
