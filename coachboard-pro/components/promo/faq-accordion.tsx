@@ -25,7 +25,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "What payment methods can I use?",
-    a: "Card payments via PagueloFacil, or Yappy (we manually confirm and activate Yappy payments, usually within 24 hours).",
+    a: "Yappy. Submit your payment details and we manually confirm and activate your account, usually within 24 hours.",
   },
 ];
 

@@ -21,7 +21,6 @@ const PROMO_REDIRECT = "/promo";
 export function PromoPricingCta({ campaignEnded }: { campaignEnded: boolean }) {
   const { user, profile } = useAuth();
   const router = useRouter();
-  const [pfLoading, setPfLoading] = useState(false);
 
   const [yappyOpen, setYappyOpen] = useState(false);
   const [yappyName, setYappyName] = useState(profile?.full_name || "");
@@ -31,23 +30,6 @@ export function PromoPricingCta({ campaignEnded }: { campaignEnded: boolean }) {
 
   const goAuth = () => {
     router.push(`/login?redirect=${encodeURIComponent(PROMO_REDIRECT)}`);
-  };
-
-  const handlePagueloFacil = async () => {
-    if (!user) return goAuth();
-    setPfLoading(true);
-    try {
-      const res = await fetch("/api/paguelofacil/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ interval: "promo" }),
-      });
-      const data = await res.json();
-      if (data.url) window.location.href = data.url;
-    } catch {
-      // ignore
-    }
-    setPfLoading(false);
   };
 
   const handleYappyRequest = async () => {
@@ -93,13 +75,6 @@ export function PromoPricingCta({ campaignEnded }: { campaignEnded: boolean }) {
           <div className="flex flex-col gap-2">
             <Button
               variant="primary"
-              onClick={handlePagueloFacil}
-              disabled={pfLoading}
-            >
-              {pfLoading ? "Redirecting..." : "Pagar con Tarjeta"}
-            </Button>
-            <Button
-              variant="default"
               onClick={() => (user ? setYappyOpen(true) : goAuth())}
             >
               Pay with Yappy

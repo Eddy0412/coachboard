@@ -49,7 +49,7 @@ export function PricingCards() {
   const { profile, user } = useAuth();
   const supabase = createClient();
   const [loading, setLoading] = useState<"monthly" | "yearly" | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("paguelofacil");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("yappy");
 
   // Yappy modal state
   const [yappyOpen, setYappyOpen] = useState(false);
@@ -135,7 +135,6 @@ export function PricingCards() {
 
   const toggleButtons: { key: PaymentMethod; label: string }[] = [
     { key: "stripe", label: "Stripe" },
-    { key: "paguelofacil", label: "PagueloFacil" },
     { key: "yappy", label: "Yappy" },
   ];
 
