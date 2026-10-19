@@ -1,10 +1,26 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { CampaignBanner } from "@/components/promo/campaign-banner";
+import { PROMO_WINDOW_END } from "@/lib/promo";
+
+// Campaign banner visibility is time-sensitive — never statically freeze it.
+export const dynamic = "force-dynamic";
 
 export default function LandingPage() {
+  const promoActive = Date.now() < PROMO_WINDOW_END.getTime();
+
   return (
     <div className="flex min-h-screen flex-col">
+      {promoActive && (
+        <CampaignBanner
+          message="Get Coachboard Pro for the rest of the year — $29.99, one payment."
+          ctaLabel="See the offer"
+          href="/promo?utm_source=site&utm_medium=banner&utm_campaign=last_trimester_promo"
+          dismissKey="last_trimester_promo"
+        />
+      )}
       <header className="flex items-center justify-between border-b border-border px-4 py-4 sm:px-6">
         <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           <Image src="/logo.png" alt="Coachboard Pro logo" width={32} height={32} className="shrink-0" />
@@ -14,6 +30,7 @@ export default function LandingPage() {
           </span>
         </div>
         <nav className="flex shrink-0 items-center gap-3">
+          <ThemeToggle />
           <Link href="/login" className="hidden sm:block">
             <Button variant="ghost">Sign in</Button>
           </Link>

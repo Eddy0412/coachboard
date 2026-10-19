@@ -33,12 +33,23 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const { name, phone, teamId, teamName } = body;
+    const plan: "yearly" | "promo" = body.plan === "promo" ? "promo" : "yearly";
 
     if (!name || !phone) {
       return NextResponse.json(
         { error: "Name and phone number are required" },
         { status: 400 }
       );
+    }
+
+    if (plan === "promo") {
+      const { PROMO_WINDOW_END } = await import("@/lib/promo");
+      if (Date.now() >= PROMO_WINDOW_END.getTime()) {
+        return NextResponse.json(
+          { error: "This promotion has ended" },
+          { status: 400 }
+        );
+      }
     }
 
     // Send email to billing
@@ -57,6 +68,7 @@ export async function POST(request: NextRequest) {
           teamId: teamId || "N/A",
           teamName: teamName || "N/A",
           userId: user.id,
+          plan,
         });
         emailSent = true;
       } catch (emailErr) {
@@ -66,13 +78,16 @@ export async function POST(request: NextRequest) {
 
     // Create in-app notification for the user
     const supabaseAdmin = getSupabaseAdmin();
+    const planMessage =
+      plan === "promo"
+        ? "Your Yappy payment request for the Promo plan ($29.99, access through Dec 31, 2026) has been submitted. We'll process it within 24 hours."
+        : "Your Yappy payment request for the Pro Annual plan ($240/yr) has been submitted. We'll process it within 24 hours.";
     await supabaseAdmin.from("notifications").insert({
       user_id: user.id,
       type: "yappy_payment_request",
       title: "Yappy Payment Request Submitted",
-      message:
-        "Your Yappy payment request for the Pro Annual plan ($240/yr) has been submitted. We'll process it within 24 hours.",
-      data: { phone, name },
+      message: planMessage,
+      data: { phone, name, plan },
       read: false,
     });
 

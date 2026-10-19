@@ -151,15 +151,21 @@ export async function sendYappyPaymentRequestEmail(
     teamId: string;
     teamName: string;
     userId: string;
+    plan?: "yearly" | "promo";
   }
 ) {
+  const plan = data.plan || "yearly";
   const crypto = await import("crypto");
   const secret = process.env.CRON_SECRET || "";
   const token = crypto
     .createHmac("sha256", secret)
-    .update(`yappy-approve:${data.userId}`)
+    .update(`yappy-approve:${data.userId}:${plan}`)
     .digest("hex");
-  const approveUrl = `${getAppUrl()}/api/yappy/approve?userId=${data.userId}&token=${token}`;
+  const approveUrl = `${getAppUrl()}/api/yappy/approve?userId=${data.userId}&token=${token}&plan=${plan}`;
+  const planLabel =
+    plan === "promo"
+      ? "Promo Plan ($29.99 one-time, access through Dec 31, 2026)"
+      : "Pro Annual Plan ($240/yr)";
 
   await getResend().emails.send({
     from: FROM_APP,
@@ -167,7 +173,7 @@ export async function sendYappyPaymentRequestEmail(
     subject: `Yappy Payment Request: ${data.requesterName}`,
     html: `
       <h2>New Yappy Payment Request</h2>
-      <p>A coach has requested to pay for the <strong>Pro Annual Plan ($240/yr)</strong> via Yappy.</p>
+      <p>A coach has requested to pay for the <strong>${planLabel}</strong> via Yappy.</p>
       <table style="border-collapse:collapse;width:100%;max-width:500px;">
         <tr><td style="padding:8px;font-weight:bold;border-bottom:1px solid #eee;">Name</td><td style="padding:8px;border-bottom:1px solid #eee;">${data.requesterName}</td></tr>
         <tr><td style="padding:8px;font-weight:bold;border-bottom:1px solid #eee;">Email</td><td style="padding:8px;border-bottom:1px solid #eee;">${data.requesterEmail}</td></tr>
@@ -185,15 +191,16 @@ export async function sendYappyPaymentRequestEmail(
 
 export async function sendYappyApprovalEmail(
   to: string,
-  data: { name: string }
+  data: { name: string; plan?: "yearly" | "promo" }
 ) {
+  const planLabel = data.plan === "promo" ? "Pro Promo access (through Dec 31, 2026)" : "Pro Annual Plan";
   await getResend().emails.send({
     from: FROM_APP,
     to,
     subject: "Your Pro Plan is Now Active!",
     html: `
       <h2>Welcome to Pro, ${data.name}!</h2>
-      <p>Your Yappy payment has been confirmed and your <strong>Pro Annual Plan</strong> is now active.</p>
+      <p>Your Yappy payment has been confirmed and your <strong>${planLabel}</strong> is now active.</p>
       <p>You now have access to all Pro features:</p>
       <ul>
         <li>Unlimited projects</li>

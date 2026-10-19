@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
 
     const { data: toRemind } = await supabaseAdmin
       .from("pf_subscriptions")
-      .select("id, user_id, plan_interval, amount_usd")
+      .select("id, user_id, plan_interval, amount_usd, is_promo")
       .eq("status", "active")
       .eq("cancel_at_period_end", false)
       .gte("current_period_end", windowStart)
@@ -62,6 +62,7 @@ export async function GET(request: NextRequest) {
     if ((toRemind ?? []).length > 0) {
       const { createPaymentLink } = await import("@/lib/paguelofacil");
       const { sendRenewalReminderEmail } = await import("@/lib/notifications/email");
+      const { PROMO_REGULAR_RENEWAL_AMOUNT } = await import("@/lib/promo");
       const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
       for (const sub of toRemind as {
@@ -69,6 +70,7 @@ export async function GET(request: NextRequest) {
         user_id: string;
         plan_interval: string;
         amount_usd: number;
+        is_promo: boolean;
       }[]) {
         const { data: profile } = await supabaseAdmin
           .from("profiles")
@@ -79,15 +81,23 @@ export async function GET(request: NextRequest) {
         const p = profile as { email: string; full_name: string } | null;
         if (!p?.email) continue;
 
+        // Promo buyers renew at the regular yearly price, not the promo price.
+        const renewalInterval: "monthly" | "yearly" = sub.is_promo
+          ? "yearly"
+          : (sub.plan_interval as "monthly" | "yearly");
+        const renewalAmount = sub.is_promo
+          ? PROMO_REGULAR_RENEWAL_AMOUNT
+          : sub.amount_usd;
+
         // Generate a fresh payment link for the renewal
         let paymentUrl = `${APP_URL}/settings/billing`;
         try {
           const { url } = await createPaymentLink({
-            amount: sub.amount_usd,
-            description: `Coachboard Pro ${sub.plan_interval === "yearly" ? "Annual" : "Monthly"} Renewal`,
+            amount: renewalAmount,
+            description: `Coachboard Pro ${renewalInterval === "yearly" ? "Annual" : "Monthly"} Renewal`,
             returnUrl: `${APP_URL}/api/paguelofacil/callback`,
             userId: sub.user_id,
-            interval: sub.plan_interval as "monthly" | "yearly",
+            interval: renewalInterval,
           });
           paymentUrl = url;
         } catch (err) {
@@ -115,7 +125,7 @@ export async function GET(request: NextRequest) {
           await sendRenewalReminderEmail(p.email, {
             name: p.full_name || "Coach",
             renewalDate,
-            amount: sub.amount_usd,
+            amount: renewalAmount,
             paymentUrl,
           });
         } catch (err) {
@@ -133,7 +143,7 @@ export async function GET(request: NextRequest) {
     // - Day 3+ overdue: downgrade to free and mark past_due
     const { data: overdue } = await supabaseAdmin
       .from("pf_subscriptions")
-      .select("id, user_id, plan_interval, amount_usd, consecutive_failures, current_period_end")
+      .select("id, user_id, plan_interval, amount_usd, consecutive_failures, current_period_end, is_promo")
       .eq("status", "active")
       .eq("cancel_at_period_end", false)
       .lte("current_period_end", nowIso);
@@ -141,6 +151,7 @@ export async function GET(request: NextRequest) {
     if ((overdue ?? []).length > 0) {
       const { createPaymentLink } = await import("@/lib/paguelofacil");
       const { sendRenewalOverdueEmail } = await import("@/lib/notifications/email");
+      const { PROMO_REGULAR_RENEWAL_AMOUNT } = await import("@/lib/promo");
       const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
       for (const sub of overdue as {
@@ -150,6 +161,7 @@ export async function GET(request: NextRequest) {
         amount_usd: number;
         consecutive_failures: number;
         current_period_end: string;
+        is_promo: boolean;
       }[]) {
         const newFailures = sub.consecutive_failures + 1;
 
@@ -157,6 +169,14 @@ export async function GET(request: NextRequest) {
           .from("pf_subscriptions")
           .update({ consecutive_failures: newFailures, updated_at: nowIso })
           .eq("id", sub.id);
+
+        // Promo buyers renew at the regular yearly price, not the promo price.
+        const renewalInterval: "monthly" | "yearly" = sub.is_promo
+          ? "yearly"
+          : (sub.plan_interval as "monthly" | "yearly");
+        const renewalAmount = sub.is_promo
+          ? PROMO_REGULAR_RENEWAL_AMOUNT
+          : sub.amount_usd;
 
         // Day 1 overdue: notify the coach
         if (sub.consecutive_failures === 0) {
@@ -171,11 +191,11 @@ export async function GET(request: NextRequest) {
           let paymentUrl = `${APP_URL}/settings/billing`;
           try {
             const { url } = await createPaymentLink({
-              amount: sub.amount_usd,
-              description: `Coachboard Pro ${sub.plan_interval === "yearly" ? "Annual" : "Monthly"} Renewal`,
+              amount: renewalAmount,
+              description: `Coachboard Pro ${renewalInterval === "yearly" ? "Annual" : "Monthly"} Renewal`,
               returnUrl: `${APP_URL}/api/paguelofacil/callback`,
               userId: sub.user_id,
-              interval: sub.plan_interval as "monthly" | "yearly",
+              interval: renewalInterval,
             });
             paymentUrl = url;
           } catch (err) {
@@ -202,7 +222,7 @@ export async function GET(request: NextRequest) {
               await sendRenewalOverdueEmail(p.email, {
                 name: p.full_name || "Coach",
                 dueDate,
-                amount: sub.amount_usd,
+                amount: renewalAmount,
                 paymentUrl,
               });
             } catch (err) {

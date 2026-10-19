@@ -47,6 +47,7 @@ export function PfSubscriptionCard({ subscription, provider = "paguelofacil" }: 
         <CardTitle className="flex items-center gap-2">
           <CreditCard className="h-4 w-4" />
           {providerLabel} Subscription
+          {subscription.is_promo && <Badge variant="primary">Promo</Badge>}
         </CardTitle>
         <CardDescription>
           Manage your {providerLabel} billing.

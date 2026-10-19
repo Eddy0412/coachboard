@@ -43,6 +43,7 @@ export interface PfSubscription {
   last_charge_at: string | null;
   last_charge_status: string | null;
   consecutive_failures: number;
+  is_promo: boolean;
   created_at: string;
   updated_at: string;
 }

@@ -32,9 +32,19 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const interval = body.interval as "monthly" | "yearly";
-    if (interval !== "monthly" && interval !== "yearly") {
+    const interval = body.interval as "monthly" | "yearly" | "promo";
+    if (interval !== "monthly" && interval !== "yearly" && interval !== "promo") {
       return NextResponse.json({ error: "Invalid interval" }, { status: 400 });
+    }
+
+    if (interval === "promo") {
+      const { PROMO_WINDOW_END } = await import("@/lib/promo");
+      if (Date.now() >= PROMO_WINDOW_END.getTime()) {
+        return NextResponse.json(
+          { error: "This promotion has ended" },
+          { status: 400 }
+        );
+      }
     }
 
     // Check if user already has an active PF subscription
@@ -53,14 +63,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const amount = interval === "yearly" ? 299 : 39;
+    const { PROMO_PRICE_USD } = await import("@/lib/promo");
+    const amount =
+      interval === "promo" ? PROMO_PRICE_USD : interval === "yearly" ? 299 : 39;
+    const description =
+      interval === "promo"
+        ? "Coachboard Pro — Promo (access through Dec 31, 2026)"
+        : `Coachboard Pro ${interval === "yearly" ? "Annual" : "Monthly"} Subscription`;
     const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
     const returnUrl = `${APP_URL}/api/paguelofacil/callback`;
 
     const { createPaymentLink } = await import("@/lib/paguelofacil");
     const { url } = await createPaymentLink({
       amount,
-      description: `Coachboard Pro ${interval === "yearly" ? "Annual" : "Monthly"} Subscription`,
+      description,
       returnUrl,
       userId: user.id,
       interval,

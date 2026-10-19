@@ -9,12 +9,12 @@ function getSupabaseAdmin() {
   );
 }
 
-function verifyToken(userId: string, token: string): boolean {
+function verifyToken(userId: string, plan: string, token: string): boolean {
   const secret = process.env.CRON_SECRET;
   if (!secret) return false;
   const expected = crypto
     .createHmac("sha256", secret)
-    .update(`yappy-approve:${userId}`)
+    .update(`yappy-approve:${userId}:${plan}`)
     .digest("hex");
   try {
     return crypto.timingSafeEqual(Buffer.from(token), Buffer.from(expected));
@@ -23,11 +23,11 @@ function verifyToken(userId: string, token: string): boolean {
   }
 }
 
-export function generateApproveToken(userId: string): string {
+export function generateApproveToken(userId: string, plan: "yearly" | "promo" = "yearly"): string {
   const secret = process.env.CRON_SECRET!;
   return crypto
     .createHmac("sha256", secret)
-    .update(`yappy-approve:${userId}`)
+    .update(`yappy-approve:${userId}:${plan}`)
     .digest("hex");
 }
 
@@ -36,6 +36,7 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const userId = searchParams.get("userId");
   const token = searchParams.get("token");
+  const plan: "yearly" | "promo" = searchParams.get("plan") === "promo" ? "promo" : "yearly";
 
   if (!userId || !token) {
     return new NextResponse(page("Missing parameters", "error", APP_URL), {
@@ -44,7 +45,7 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  if (!verifyToken(userId, token)) {
+  if (!verifyToken(userId, plan, token)) {
     return new NextResponse(page("Invalid or expired approval link", "error", APP_URL), {
       status: 403,
       headers: { "Content-Type": "text/html" },
@@ -78,7 +79,11 @@ export async function GET(request: NextRequest) {
 
   // Upgrade to pro
   const now = new Date();
-  const periodEnd = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
+  const { PRO_ACCESS_UNTIL, PROMO_PRICE_USD } = await import("@/lib/promo");
+  const periodEnd =
+    plan === "promo"
+      ? PRO_ACCESS_UNTIL
+      : new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
 
   const { error } = await supabaseAdmin
     .from("profiles")
@@ -104,8 +109,8 @@ export async function GET(request: NextRequest) {
       {
         user_id: userId,
         plan_interval: "yearly",
-        amount_usd: 240,
-        cod_oper: "YAPPY-MANUAL",
+        amount_usd: plan === "promo" ? PROMO_PRICE_USD : 240,
+        cod_oper: plan === "promo" ? "YAPPY-PROMO-MANUAL" : "YAPPY-MANUAL",
         status: "active",
         current_period_start: now.toISOString(),
         current_period_end: periodEnd.toISOString(),
@@ -113,6 +118,7 @@ export async function GET(request: NextRequest) {
         last_charge_at: now.toISOString(),
         last_charge_status: "approved",
         consecutive_failures: 0,
+        is_promo: plan === "promo",
         updated_at: now.toISOString(),
       },
       { onConflict: "user_id" }
@@ -121,7 +127,7 @@ export async function GET(request: NextRequest) {
   // Send confirmation email to user
   try {
     const { sendYappyApprovalEmail } = await import("@/lib/notifications/email");
-    await sendYappyApprovalEmail(p.email, { name: p.full_name });
+    await sendYappyApprovalEmail(p.email, { name: p.full_name, plan });
   } catch (emailErr) {
     console.error("Failed to send Yappy approval email:", emailErr);
   }

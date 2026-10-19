@@ -3,6 +3,7 @@ import Script from "next/script";
 import { AuthProvider } from "@/components/auth/auth-provider";
 import { ToastProvider } from "@/components/ui/toast";
 import { QueryProvider } from "@/components/query-provider";
+import { ThemeProvider } from "@/components/theme/theme-provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -17,8 +18,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" suppressHydrationWarning>
       <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "(function(){try{if(localStorage.getItem('theme')==='light'){document.documentElement.classList.add('light');}}catch(e){}})();",
+          }}
+        />
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-7L740THDHE"
           strategy="afterInteractive"
@@ -32,12 +39,14 @@ export default function RootLayout({
           `}
         </Script>
       </head>
-      <body className="min-h-screen bg-bg antialiased">
-        <QueryProvider>
-          <AuthProvider>
-            <ToastProvider>{children}</ToastProvider>
-          </AuthProvider>
-        </QueryProvider>
+      <body className="min-h-screen bg-bg antialiased" suppressHydrationWarning>
+        <ThemeProvider>
+          <QueryProvider>
+            <AuthProvider>
+              <ToastProvider>{children}</ToastProvider>
+            </AuthProvider>
+          </QueryProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

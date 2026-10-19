@@ -115,6 +115,7 @@ export function PricingCards() {
           phone: yappyPhone.trim(),
           teamId,
           teamName,
+          plan: "yearly",
         }),
       });
       const data = await res.json();

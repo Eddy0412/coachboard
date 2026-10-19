@@ -59,12 +59,14 @@ export function verifyParm(parm1: string, interval: string): string | null {
   return userId;
 }
 
+export type PfInterval = "monthly" | "yearly" | "promo";
+
 interface CreatePaymentLinkParams {
   amount: number;
   description: string;
   returnUrl: string;
   userId: string;
-  interval: "monthly" | "yearly";
+  interval: PfInterval;
 }
 
 /** Create a PagueloFacil payment link (redirects user to hosted checkout) */

@@ -21,6 +21,17 @@
   --color-swatch-green: #A3FF12;
 }
 
+/* Light mode overrides - dark (above) is the default, :root.light swaps surfaces/text */
+:root.light {
+  --color-bg: #f5f7fa;
+  --color-card: #ffffff;
+  --color-border: #e1e7ef;
+  --color-muted: #64748b;
+  --color-text: #0f172a;
+  --color-pill: #eef1f6;
+  --color-input: #ffffff;
+}
+
 * {
   box-sizing: border-box;
   scrollbar-width: thin;

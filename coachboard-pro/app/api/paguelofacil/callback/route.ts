@@ -40,8 +40,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL(`${billingUrl}?canceled=true`), 302);
     }
 
-    const interval = parm2 as "monthly" | "yearly";
-    if (interval !== "monthly" && interval !== "yearly") {
+    const interval = parm2 as "monthly" | "yearly" | "promo";
+    if (interval !== "monthly" && interval !== "yearly" && interval !== "promo") {
       console.error("PF callback: Invalid interval:", parm2);
       return NextResponse.redirect(new URL(`${billingUrl}?canceled=true`), 302);
     }
@@ -60,10 +60,18 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL(`${billingUrl}?success=true`), 302);
     }
 
-    const amount = interval === "yearly" ? 240 : 24;
+    const { PROMO_PRICE_USD, PRO_ACCESS_UNTIL } = await import("@/lib/promo");
+    const amount =
+      interval === "promo" ? PROMO_PRICE_USD : interval === "yearly" ? 240 : 24;
     const periodDays = interval === "yearly" ? 365 : 30;
     const now = new Date();
-    const periodEnd = new Date(now.getTime() + periodDays * 24 * 60 * 60 * 1000);
+    const periodEnd =
+      interval === "promo"
+        ? PRO_ACCESS_UNTIL
+        : new Date(now.getTime() + periodDays * 24 * 60 * 60 * 1000);
+    // Promo rows store plan_interval "yearly" (DB CHECK constraint only allows
+    // monthly/yearly) and are distinguished via is_promo below.
+    const dbPlanInterval = interval === "promo" ? "yearly" : interval;
 
     // Check if this is a renewal (existing subscription) or a new signup
     const { data: existingSub } = await supabaseAdmin
@@ -79,7 +87,7 @@ export async function GET(request: NextRequest) {
       .upsert(
         {
           user_id: userId,
-          plan_interval: interval,
+          plan_interval: dbPlanInterval,
           amount_usd: amount,
           cod_oper: codOper,
           status: "active",
@@ -89,6 +97,7 @@ export async function GET(request: NextRequest) {
           last_charge_at: now.toISOString(),
           last_charge_status: "Aprobada",
           consecutive_failures: 0,
+          is_promo: interval === "promo",
           updated_at: now.toISOString(),
         },
         { onConflict: "user_id" }
