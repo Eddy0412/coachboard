@@ -7,6 +7,10 @@ export type SubscriptionStatus = "free" | "pro" | "canceled";
 export type ProjectPermission = "admin" | "write" | "read";
 export type InvitationStatus = "pending" | "accepted" | "expired";
 export type DrawingTool = "pen" | "erase";
+export type FeedbackCategory = "bug" | "comment" | "idea";
+export type FeedbackSeverity = "small_thing" | "annoying" | "blocks_me" | "breaks_site";
+export type FeedbackPriority = "p0" | "p1" | "p2";
+export type FeedbackStatus = "new" | "tbd" | "planned" | "in_progress" | "done" | "wont_fix";
 
 export type PaymentProvider = "stripe" | "paguelofacil" | "yappy" | null;
 
@@ -206,6 +210,41 @@ export interface Article {
   updated_at: string;
 }
 
+export interface FeedbackItem {
+  id: string;
+  category: FeedbackCategory;
+  title: string;
+  details: string;
+  severity: FeedbackSeverity | null;
+  priority: FeedbackPriority | null;
+  status: FeedbackStatus;
+  page_path: string | null;
+  author_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FeedbackAttachment {
+  id: string;
+  item_id: string;
+  url: string;
+  created_at: string;
+}
+
+export interface FeedbackVote {
+  item_id: string;
+  user_id: string;
+  created_at: string;
+}
+
+export interface FeedbackComment {
+  id: string;
+  item_id: string;
+  author_id: string;
+  body: string;
+  created_at: string;
+}
+
 export interface Invitation {
   id: string;
   team_id: string;
@@ -247,11 +286,19 @@ export interface Database {
       articles: TableDef<Article>;
       pf_subscriptions: TableDef<PfSubscription>;
       pf_payment_log: TableDef<PfPaymentLog>;
+      feedback_items: TableDef<FeedbackItem>;
+      feedback_attachments: TableDef<FeedbackAttachment>;
+      feedback_votes: TableDef<FeedbackVote>;
+      feedback_comments: TableDef<FeedbackComment>;
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
     Enums: {
       user_role: UserRole;
+      feedback_category: FeedbackCategory;
+      feedback_severity: FeedbackSeverity;
+      feedback_priority: FeedbackPriority;
+      feedback_status: FeedbackStatus;
       team_member_status: TeamMemberStatus;
       subscription_status: SubscriptionStatus;
       project_permission: ProjectPermission;

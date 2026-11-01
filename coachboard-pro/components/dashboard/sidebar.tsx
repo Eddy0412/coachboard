@@ -27,6 +27,7 @@ import {
   ShieldCheck,
   BarChart3,
   X,
+  MessageSquare,
 } from "lucide-react";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
@@ -45,6 +46,7 @@ const NAV_ITEMS = [
 ];
 
 const SUPPORT_ITEMS = [
+  { href: "/feedback", label: "Feedback Board", icon: MessageSquare },
   { href: "/support/knowledge-base", label: "Knowledge Base", icon: BookOpen },
   { href: "/support/docs", label: "Documentation", icon: FileText },
   { href: "/support/tutorials", label: "Video Tutorials", icon: PlayCircle },

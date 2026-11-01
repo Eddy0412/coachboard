@@ -8,6 +8,8 @@ import { useAuth } from "@/components/auth/auth-provider";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { TourGuide } from "@/components/dashboard/tour-guide";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { FeedbackButton } from "@/components/feedback/feedback-button";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { loading } = useAuth();
@@ -41,10 +43,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <span className="text-sm font-extrabold">Coachboard</span>
             </Link>
           </div>
-          <NotificationBell />
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <NotificationBell />
+          </div>
         </header>
         <main className="flex-1 overflow-y-auto p-6">{children}</main>
       </div>
+      <FeedbackButton />
     </div>
   );
 }
