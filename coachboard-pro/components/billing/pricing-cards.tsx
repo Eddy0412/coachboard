@@ -16,6 +16,7 @@ import {
 import { Check, Sparkles, Crown, CheckCircle, Users } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
+import { TIER_AUDIENCE } from "@/lib/pricing-constants";
 
 const FREE_FEATURES = [
   "2 projects",
@@ -199,6 +200,9 @@ export function PricingCards() {
           <Button variant="default" disabled>
             Current plan
           </Button>
+          <div className="border-t border-border pt-3 text-center text-xs uppercase tracking-wide text-muted">
+            {TIER_AUDIENCE.free}
+          </div>
         </Card>
 
         {/* Pro tier */}
@@ -254,6 +258,9 @@ export function PricingCards() {
               Upgrade — $299/yr
             </Button>
           )}
+          <div className="border-t border-border pt-3 text-center text-xs uppercase tracking-wide text-muted">
+            {TIER_AUDIENCE.pro}
+          </div>
         </Card>
 
         {/* Elite tier */}
@@ -282,6 +289,9 @@ export function PricingCards() {
           <Button variant="default" disabled>
             Coming Soon
           </Button>
+          <div className="border-t border-border pt-3 text-center text-xs uppercase tracking-wide text-muted">
+            {TIER_AUDIENCE.elite}
+          </div>
         </Card>
       </div>
 

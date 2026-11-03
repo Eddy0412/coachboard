@@ -3,6 +3,16 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { CampaignBanner } from "@/components/promo/campaign-banner";
+import { PromoVideo } from "@/components/promo/video-section";
+import { PromoStatsBar } from "@/components/promo/stats-bar";
+import { PromoTestimonials } from "@/components/promo/testimonials";
+import { LandingPricingSection } from "@/components/landing/pricing-section";
+import { HowItWorks } from "@/components/landing/how-it-works";
+import { VideoBreakdownHighlight } from "@/components/landing/video-breakdown-highlight";
+import { TelestrationHighlight } from "@/components/landing/telestration-highlight";
+import { CoachIqHighlight } from "@/components/landing/coachiq-highlight";
+import { LandingFaq } from "@/components/landing/faq-accordion";
+import { ClosingCta } from "@/components/landing/closing-cta";
 import { PROMO_WINDOW_END } from "@/lib/promo";
 
 // Campaign banner visibility is time-sensitive — never statically freeze it.
@@ -30,6 +40,9 @@ export default function LandingPage() {
           </span>
         </div>
         <nav className="flex shrink-0 items-center gap-3">
+          <Link href="#pricing" className="hidden text-sm font-medium text-muted hover:text-text sm:block">
+            Pricing
+          </Link>
           <ThemeToggle />
           <Link href="/login" className="hidden sm:block">
             <Button variant="ghost">Sign in</Button>
@@ -40,54 +53,45 @@ export default function LandingPage() {
         </nav>
       </header>
 
-      <main className="flex flex-1 flex-col items-center justify-center gap-8 px-6 text-center">
-        <div className="max-w-2xl">
-          <h2 className="mb-4 text-4xl font-extrabold leading-tight sm:text-5xl">
-            Film breakdown.
-            <br />
-            <span className="text-primary">Built for coaches.</span>
-          </h2>
-          <p className="text-lg text-muted">
-            Timestamp key moments, draw telestrations, tag athletes, and
-            collaborate with your coaching staff — all in one place.
-          </p>
+      <main className="flex flex-1 flex-col gap-14 pb-20 pt-10">
+        <div className="flex flex-col items-center gap-8 px-6 text-center">
+          <div className="max-w-2xl">
+            <p className="mb-3 text-xs font-bold tracking-wide text-primary">BUILT FOR FOOTBALL PROGRAMS</p>
+            <h2 className="mb-4 text-4xl font-extrabold leading-tight sm:text-5xl">
+              Film breakdown.
+              <br />
+              <span className="text-primary">Built for coaches.</span>
+            </h2>
+            <p className="text-lg text-muted">
+              Timestamp key plays, draw telestrations, tag athletes, and
+              collaborate with your football coaching staff — all in one place.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-4">
+            <Link href="/signup">
+              <Button variant="primary" size="lg">
+                Start coaching for free
+              </Button>
+            </Link>
+            <Link href="/login">
+              <Button size="lg">Sign in to your account</Button>
+            </Link>
+          </div>
+          <p className="text-xs text-muted">Your film stays private — only your team ever sees it.</p>
         </div>
 
-        <div className="flex flex-wrap items-center justify-center gap-4">
-          <Link href="/signup">
-            <Button variant="primary" size="lg">
-              Start coaching for free
-            </Button>
-          </Link>
-          <Link href="/login">
-            <Button size="lg">Sign in to your account</Button>
-          </Link>
-        </div>
+        <PromoVideo />
+        <PromoStatsBar />
+        <HowItWorks />
 
-        <div className="mt-8 grid max-w-4xl gap-6 sm:grid-cols-3">
-          {[
-            {
-              title: "Video Breakdown",
-              desc: "Load any YouTube video, create timestamped coaching points, and add detailed notes for each play.",
-            },
-            {
-              title: "Telestration",
-              desc: "Draw directly on the video with multiple colors and sizes. Drawings are saved per timestamp.",
-            },
-            {
-              title: "Team Collaboration",
-              desc: "Invite coaches and athletes, share projects, add comments, and get real-time notifications.",
-            },
-          ].map((f) => (
-            <div
-              key={f.title}
-              className="rounded-2xl border border-border bg-card p-6 text-left"
-            >
-              <h3 className="mb-2 font-bold">{f.title}</h3>
-              <p className="text-sm text-muted">{f.desc}</p>
-            </div>
-          ))}
-        </div>
+        <VideoBreakdownHighlight />
+        <TelestrationHighlight />
+        <CoachIqHighlight />
+        <PromoTestimonials />
+        <LandingPricingSection />
+        <LandingFaq />
+        <ClosingCta />
       </main>
 
       <footer className="border-t border-border px-6 py-4 text-center text-xs text-muted">
