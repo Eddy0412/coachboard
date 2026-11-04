@@ -225,12 +225,14 @@ export default function TeamPage() {
             className="flex gap-3"
           >
             <Input
+              data-tour="team-name-input"
               placeholder="Team name"
               value={teamName}
               onChange={(e) => setTeamName(e.target.value)}
               required
             />
             <Button
+              data-tour="create-team-button"
               type="submit"
               variant="primary"
               disabled={createTeam.isPending}

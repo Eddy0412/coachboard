@@ -231,7 +231,7 @@ export default function ProjectSettingsPage({
         <CardHeader>
           <CardTitle className="text-danger">Danger Zone</CardTitle>
         </CardHeader>
-        <Button variant="danger" onClick={handleDelete}>
+        <Button data-tour="delete-project-button" variant="danger" onClick={handleDelete}>
           <Trash2 className="h-4 w-4" />
           Delete project
         </Button>

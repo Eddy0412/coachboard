@@ -158,7 +158,7 @@ export default function DashboardPage() {
           </p>
           {!athleteUser && (
             <Link href="/projects/new">
-              <Button variant="primary">
+              <Button data-tour="new-project-button" variant="primary">
                 <Plus className="h-4 w-4" />
                 Create project
               </Button>

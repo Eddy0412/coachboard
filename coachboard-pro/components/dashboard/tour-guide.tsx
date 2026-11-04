@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
+import { isAthlete } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard,
@@ -12,6 +13,7 @@ import {
   Bell,
   ChevronRight,
   ChevronLeft,
+  GraduationCap,
   X,
 } from "lucide-react";
 
@@ -62,11 +64,17 @@ const STEPS = [
 
 const STORAGE_KEY = (userId: string) => `tour_dismissed_${userId}`;
 
-export function TourGuide() {
-  const { user } = useAuth();
+interface TourGuideProps {
+  /** Fired when the user confirms they're a coach, after the info steps. */
+  onPickCoach?: () => void;
+}
+
+export function TourGuide({ onPickCoach }: TourGuideProps) {
+  const { user, profile } = useAuth();
   const [visible, setVisible] = useState(false);
   const [step, setStep] = useState(0);
   const [dontShow, setDontShow] = useState(false);
+  const [phase, setPhase] = useState<"steps" | "role">("steps");
 
   useEffect(() => {
     if (!user?.id) return;
@@ -81,7 +89,62 @@ export function TourGuide() {
     setVisible(false);
   }
 
+  function finishSteps() {
+    // Anyone who already joined as an athlete (via a team invite) skips the
+    // question entirely — we already know, and the tour below is coach-only.
+    if (isAthlete(profile)) {
+      close();
+      return;
+    }
+    setPhase("role");
+  }
+
+  function pickAthlete() {
+    close();
+  }
+
+  function pickCoach() {
+    close();
+    onPickCoach?.();
+  }
+
   if (!visible) return null;
+
+  if (phase === "role") {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div className="relative w-full max-w-md rounded-2xl border border-border bg-card p-8 shadow-2xl">
+          <button
+            onClick={close}
+            className="absolute right-4 top-4 text-muted hover:text-text transition-colors"
+            aria-label="Close tour"
+          >
+            <X className="h-4 w-4" />
+          </button>
+
+          <div className="mb-5 flex justify-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-bg">
+              <GraduationCap className="h-7 w-7 text-primary" />
+            </div>
+          </div>
+
+          <h2 className="mb-3 text-center text-xl font-extrabold">Are you a coach or an athlete?</h2>
+          <p className="mb-8 text-center text-sm leading-relaxed text-muted">
+            We&apos;ll tailor what happens next based on your answer.
+          </p>
+
+          <div className="flex flex-col gap-2">
+            <Button variant="primary" onClick={pickCoach}>
+              I&apos;m a coach
+            </Button>
+            <Button variant="default" onClick={pickAthlete}>
+              I&apos;m an athlete
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const current = STEPS[step];
   const Icon = current.icon;
@@ -137,7 +200,7 @@ export function TourGuide() {
           </Button>
 
           {isLast ? (
-            <Button variant="primary" onClick={close}>
+            <Button variant="primary" onClick={finishSteps}>
               Get started
             </Button>
           ) : (

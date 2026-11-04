@@ -368,7 +368,7 @@ export default function ProjectPage({
 
           {canEdit && (
             <Link href={`/projects/${id}/settings`}>
-              <Button variant="ghost" size="sm">
+              <Button data-tour="project-settings-link" variant="ghost" size="sm">
                 <Settings className="h-4 w-4" />
                 <span className="hidden sm:inline">Settings</span>
               </Button>
@@ -526,7 +526,7 @@ export default function ProjectPage({
           lg:grid-cols-[300px_1fr] lg:[grid-template-rows:auto_1fr] lg:h-[calc(100vh-200px)]
           xl:grid-cols-[340px_1fr_380px] xl:[grid-template-rows:auto] xl:h-auto">
 
-          <Card className="flex flex-col gap-3 overflow-hidden lg:row-span-2 xl:row-span-1 xl:max-h-[calc(100vh-180px)]">
+          <Card data-tour="timestamp-list" className="flex flex-col gap-3 overflow-hidden lg:row-span-2 xl:row-span-1 xl:max-h-[calc(100vh-180px)]">
             <VideoControls onAddTimestamp={handleAddTimestamp} canEdit={canEdit} />
             <DrawingToolbar canEdit={canEdit} teamId={project.team_id} />
             <OverlayController timestamp={selectedTimestamp} canEdit={canEdit} />
@@ -546,11 +546,11 @@ export default function ProjectPage({
           </Card>
 
           <Card className="flex flex-col gap-2 lg:col-start-2 lg:row-start-1 xl:col-start-2 xl:row-start-1 xl:max-h-[calc(100vh-180px)]">
-            <div className="relative flex-shrink-0">
+            <div data-tour="telestration-canvas" className="relative flex-shrink-0">
               <VideoPlayer videoId={project.youtube_id} />
               <TelestrationCanvas timestampId={selectedTimestampId} canEdit={canEdit} />
             </div>
-            <div className="flex flex-col gap-2 px-1 pb-1 flex-1 overflow-hidden min-h-0">
+            <div data-tour="coachiq-panel" className="flex flex-col gap-2 px-1 pb-1 flex-1 overflow-hidden min-h-0">
               <p className="text-xs text-muted">
                 Tip: Create timestamps for key plays, tag athletes, and draw telestrations.
               </p>

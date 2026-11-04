@@ -97,6 +97,7 @@ export interface Project {
   coachiq_report: string | null;
   coachiq_report_visibility: "coach_only" | "team";
   coachiq_report_generated_at: string | null;
+  is_global_demo: boolean;
   created_at: string;
   updated_at: string;
 }

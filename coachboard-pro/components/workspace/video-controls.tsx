@@ -104,7 +104,7 @@ export function VideoControls({ onAddTimestamp, canEdit, filmroom }: VideoContro
         </div>
 
         {canEdit && (
-          <Button variant="primary" onClick={onAddTimestamp}>
+          <Button data-tour="add-timestamp-button" variant="primary" onClick={onAddTimestamp}>
             <Timer className="h-4 w-4" />
             Timestamp @ {formatTime(currentTime)}
           </Button>

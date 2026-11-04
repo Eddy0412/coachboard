@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useCreateProject, useProjects } from "@/hooks/use-project";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useSubscription } from "@/hooks/use-subscription";
 import { parseYouTubeId } from "@/lib/youtube";
 import { FREE_LIMITS } from "@/lib/constants";
+import { ONBOARDING_STAGE_KEY } from "@/lib/onboarding";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,6 +15,8 @@ import { useToast } from "@/components/ui/toast";
 import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
+
+const EXAMPLE_YOUTUBE_URL = "https://www.youtube.com/watch?v=NRZoDgx0ZeI";
 
 export default function NewProjectPage() {
   const [title, setTitle] = useState("");
@@ -29,6 +32,15 @@ export default function NewProjectPage() {
   const { toast } = useToast();
   const supabase = createClient();
   const { data: existingProjects } = useProjects();
+
+  // Guided-setup tour: pre-fill with an example video so a brand-new coach
+  // without footage ready yet isn't blocked. Still fully editable/clearable.
+  useEffect(() => {
+    if (!user) return;
+    if (localStorage.getItem(ONBOARDING_STAGE_KEY(user.id)) === "create_project") {
+      setYoutubeUrl(EXAMPLE_YOUTUBE_URL);
+    }
+  }, [user]);
 
   // Detect footage admin / support account
   const footageAdminEntries = (process.env.NEXT_PUBLIC_FOOTAGE_ADMIN_EMAILS || "")
@@ -172,6 +184,7 @@ export default function NewProjectPage() {
         <div className="flex flex-col gap-2">
           <label className="text-sm font-medium">Title</label>
           <Input
+            data-tour="project-title-input"
             placeholder="Game Film - Week 4 vs Eagles"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -220,6 +233,7 @@ export default function NewProjectPage() {
         <div className="flex flex-col gap-2">
           <label className="text-sm font-medium">YouTube URL</label>
           <Input
+            data-tour="youtube-url-input"
             placeholder="https://www.youtube.com/watch?v=..."
             value={youtubeUrl}
             onChange={(e) => setYoutubeUrl(e.target.value)}
@@ -261,6 +275,7 @@ export default function NewProjectPage() {
         )}
 
         <Button
+          data-tour="create-project-button"
           type="submit"
           variant="primary"
           disabled={isFootageAdmin ? submitting : createProject.isPending}

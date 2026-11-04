@@ -60,3 +60,21 @@ body {
 #yt-player iframe {
   pointer-events: none;
 }
+
+/* Guided-setup tour: a visible highlight on whichever real element the
+   current step is talking about. Applied via JS (components/onboarding/
+   guided-setup.tsx), not react-joyride's own spotlight — that only keeps the
+   *current* step's target clickable, so a multi-field form needs the real
+   overlay turned off entirely (hideOverlay) to let every field work,
+   and this class stands in for the visual cue the overlay would have given. */
+.onboarding-spotlight {
+  position: relative;
+  z-index: 10001;
+  outline: 3px solid var(--color-primary);
+  outline-offset: 3px;
+  border-radius: 0.75rem;
+  box-shadow:
+    0 0 0 6px var(--color-primary-bg),
+    0 0 24px 4px rgba(52, 87, 255, 0.35);
+  transition: box-shadow 0.2s ease;
+}
